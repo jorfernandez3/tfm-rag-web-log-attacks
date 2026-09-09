@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# macOS
+.DS_Store
+
+# LaTeX auxiliary files
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.bcf
+*.blg
+*.bbl
+*.run.xml
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Secrets
+.env
+.env.*
+*.key
+
+# Local data / large generated files
+data/raw/
+results/logs/
+thesis/chapters/

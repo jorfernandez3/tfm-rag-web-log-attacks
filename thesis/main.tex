@@ -1,0 +1,171 @@
+\documentclass[12pt,a4paper,oneside]{report}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{setspace}
+\onehalfspacing
+
+\usepackage[a4paper,top=2.5cm,bottom=2.5cm,left=3cm,right=2.5cm]{geometry}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\nouppercase{\leftmark}}
+\fancyhead[R]{\thepage}
+\setlength{\headheight}{15pt}
+
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries}
+  {\chaptertitlename\ \thechapter}
+  {12pt}
+  {\Huge}
+\titlespacing*{\chapter}{0pt}{-20pt}{12pt}
+\titlespacing*{\section}{0pt}{0.5cm}{0.25cm}
+\titlespacing*{\subsection}{0pt}{0.4cm}{0.2cm}
+
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{calc}
+\usepackage{amsmath,amssymb}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{pdflscape}
+
+\usepackage{listings}
+\usepackage{xcolor}
+\lstset{
+  basicstyle=\ttfamily\small\color{green!40!white},
+  backgroundcolor=\color{black!85},
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{green!50!black},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  showspaces=false,
+  aboveskip=0.6\baselineskip,
+  belowskip=0.6\baselineskip,
+  moredelim=**[is][\color{white}\bfseries]{@}{@},
+  literate={-}{{-}}1
+}
+
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{0pt}
+
+\providecommand{\passthrough}[1]{#1}
+
+\usepackage[hidelinks]{hyperref}
+
+\usepackage{csquotes}
+\providecommand{\IfDocumentMetadataT}[1]{}
+\providecommand{\IfDocumentMetadataF}[1]{#1}
+\providecommand{\IfDocumentMetadataTF}[2]{#2}
+\usepackage[backend=biber,style=ieee,sorting=none]{biblatex}
+\addbibresource{references/references.bib}
+
+\newcommand{\thesistitle}{Design and Evaluation of a RAG-Based LLM Assistant for Web Application Log Analysis under Prompt Injection Attacks}
+\newcommand{\thesissubtitle}{A Robustness Assessment with Evidence-Controlled Retrieval}
+\newcommand{\thesisauthor}{Jordán Efraín Fernández Ruiz}
+\newcommand{\thesisdegree}{Master's Thesis}
+\newcommand{\thesisuniversity}{Universitat Politècnica de Catalunya (UPC)}
+\newcommand{\thesisdate}{2026--2027}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    {\Large \thesisuniversity\par}
+    \vspace{2.2cm}
+    {\Huge\bfseries \thesistitle\par}
+    \vspace{0.8cm}
+    {\Large \thesissubtitle\par}
+    \vspace{2cm}
+    {\Large \thesisdegree\par}
+    \vfill
+    {\large \textbf{Author:} \thesisauthor\par}
+    \vspace{0.5cm}
+    {\large \thesisdate\par}
+    \vspace*{1cm}
+\end{titlepage}
+
+\pagenumbering{roman}
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+Large Language Models (LLMs) are increasingly being integrated into
+cybersecurity applications that require the interpretation of
+semi-structured and unstructured information. Web application logs are a
+particularly relevant use case because they contain technical
+indicators, attack payloads, request metadata, and user-controlled
+textual fields that may benefit from natural-language reasoning.
+However, the same flexibility that allows LLMs to interpret these
+heterogeneous inputs also introduces a new security risk:
+attacker-controlled log fields may contain malicious natural-language
+instructions capable of influencing the model's behavior.
+
+This thesis designs, implements, and evaluates a Retrieval-Augmented
+Generation (RAG)-based LLM assistant for web application log analysis,
+with particular emphasis on robustness against Prompt Injection attacks
+embedded in attacker-controlled log fields. The system combines
+structured log preprocessing, a prompt-injection detector,
+domain-specific retrieval, evidence-controlled prompting, and structured
+JSON output. The knowledge base includes selected MITRE ATT\&CK
+techniques, OWASP web-attack knowledge, response playbooks, and
+prompt-injection handling policies.
+
+The experimental methodology compares three configurations: an LLM-only
+baseline, an LLM with RAG, and a defended RAG configuration
+incorporating instruction/data separation, prompt hardening,
+prompt-injection detection, metadata tagging, and evidence-controlled
+generation. The evaluation focuses on attack success rate,
+classification accuracy, attack-type accuracy, hallucination behavior,
+retrieval quality, evidence use, and robustness. The objective is to
+determine both how vulnerable a RAG-based assistant is to prompt
+injection contained in web application logs and how effectively simple,
+layered defenses can reduce this risk.
+
+\textbf{Keywords:} Large Language Models, Retrieval-Augmented
+Generation, Prompt Injection, Web Application Logs, Cybersecurity,
+Evidence Grounding, LLM Security.
+
+
+\clearpage
+\tableofcontents
+\clearpage
+\listoffigures
+\clearpage
+\listoftables
+\clearpage
+
+\pagenumbering{arabic}
+
+\input{chapters/01_introduction.tex}
+\input{chapters/02_background_and_related_work.tex}
+\input{chapters/03_research_methodology.tex}
+\input{chapters/04_system_design.tex}
+\input{chapters/05_dataset_and_implementation.tex}
+\input{chapters/06_experimental_evaluation.tex}
+\input{chapters/07_discussion.tex}
+\input{chapters/08_conclusions_and_future_work.tex}
+
+\clearpage
+\printbibliography[heading=bibintoc,title={References}]
+
+\appendix
+\input{chapters/appendix_a_final_experimental_definitions.tex}
+\input{chapters/appendix_b_decisions_applied_during_cleanup.tex}
+\input{chapters/appendix_c_literature_review_matrix_template.tex}
+\input{chapters/appendix_d_recommended_writing_checklist.tex}
+
+\end{document}
