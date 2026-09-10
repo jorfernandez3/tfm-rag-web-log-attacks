@@ -117,6 +117,15 @@ Chapters 4-8 are currently being written and reviewed and will be added here as 
 
 The LaTeX entry point and thesis-specific instructions are available in [`thesis/main.tex`](thesis/main.tex) and [`thesis/README.md`](thesis/README.md).
 
+### Individual chapter PDFs
+
+Separate review copies are available for the chapters currently ready for review:
+
+- [Chapter 1 PDF](thesis/review/chapter_01.pdf)
+- [Chapter 2 PDF](thesis/review/chapter_02.pdf)
+- [Chapter 3 PDF](thesis/review/chapter_03.pdf)
+- [Review folder instructions](thesis/review/README.md)
+
 ## Repository Structure
 
 ```text
