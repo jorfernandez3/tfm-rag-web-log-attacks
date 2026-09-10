@@ -109,22 +109,17 @@ The evaluation considers metrics including:
 
 The manuscript is written in LaTeX. The current chapter structure is:
 
-- [Chapter 1 - Introduction](thesis/chapters/01_introduction.tex)
-- [Chapter 2 - Background and Related Work](thesis/chapters/02_background_and_related_work.tex)
-- [Chapter 3 - Research Methodology](thesis/chapters/03_research_methodology.tex)
+| Chapter | PDF version | LaTeX source |
+| --- | --- | --- |
+| Chapter 1 - Introduction | [Open PDF](thesis/review/chapter_01.pdf) | [Open LaTeX](thesis/chapters/01_introduction.tex) |
+| Chapter 2 - Background and Related Work | [Open PDF](thesis/review/chapter_02.pdf) | [Open LaTeX](thesis/chapters/02_background_and_related_work.tex) |
+| Chapter 3 - Research Methodology | [Open PDF](thesis/review/chapter_03.pdf) | [Open LaTeX](thesis/chapters/03_research_methodology.tex) |
 
 Chapters 4-8 are currently being written and reviewed and will be added here as they are finalized.
 
 The LaTeX entry point and thesis-specific instructions are available in [`thesis/main.tex`](thesis/main.tex) and [`thesis/README.md`](thesis/README.md).
 
-### Individual chapter PDFs
-
-Separate review copies are available for the chapters currently ready for review:
-
-- [Chapter 1 PDF](thesis/review/chapter_01.pdf)
-- [Chapter 2 PDF](thesis/review/chapter_02.pdf)
-- [Chapter 3 PDF](thesis/review/chapter_03.pdf)
-- [Review folder instructions](thesis/review/README.md)
+Separate review copies are available in the [review folder](thesis/review/README.md). The complete thesis source is [thesis/main.tex](thesis/main.tex), and the compiled complete thesis is [thesis/main.pdf](thesis/main.pdf).
 
 ## Repository Structure
 
