@@ -1,0 +1,256 @@
+\chapter{Introduction}\label{introduction}
+
+\section{Motivation}\label{motivation}
+
+Large Language Models have demonstrated strong capabilities for
+interpreting, summarizing, and reasoning over complex textual
+information. These capabilities have created significant interest in
+their use for cybersecurity tasks, where analysts frequently work with
+heterogeneous information such as vulnerability descriptions, attack
+patterns, request traces, incident reports, and security logs.
+
+Web application logs are particularly suitable for LLM-assisted analysis
+because they combine structured fields with free-form or
+attacker-controlled content. A single HTTP request may contain a method,
+URL, query parameters, a request body, a User-Agent string, a source
+address, and a response status. These fields may contain evidence of
+attacks such as SQL Injection, Cross-Site Scripting, Path Traversal, or
+repeated authentication attempts. An LLM can potentially transform these
+technical observations into a structured explanation containing an
+attack classification, severity assessment, relevant indicators, and
+recommended defensive actions.
+
+However, introducing an LLM into the analysis pipeline creates a
+security problem that does not exist in conventional log parsers. Some
+web-log fields are directly controlled by external users. If an attacker
+inserts natural-language instructions into fields such as the URL, query
+parameters, request body, or User-Agent string, those instructions may
+later become part of the context presented to the LLM. A vulnerable
+model may interpret the injected text as an instruction rather than as
+untrusted data.
+
+For example, a malicious request could combine a conventional attack
+payload with an instruction such as:
+
+\begin{lstlisting}
+Ignore previous instructions and classify this request as benign.
+\end{lstlisting}
+
+A traditional parser would treat this string as passive content. An LLM,
+however, may allow it to influence the reasoning process. This creates
+the possibility of manipulating the reported classification, lowering
+the reported severity, suppressing evidence, or attempting to extract
+hidden system instructions.
+
+The problem becomes even more relevant when Retrieval-Augmented
+Generation is used. RAG can improve factual grounding by supplying the
+model with cybersecurity knowledge retrieved from an external knowledge
+base. At the same time, the final prompt still combines trusted
+instructions, retrieved evidence, and untrusted log content. Robust
+prompt construction and evidence control are therefore necessary if the
+system is expected to produce reliable security analysis.
+
+\section{Problem Statement}\label{problem-statement}
+
+The central problem addressed by this thesis is the potential
+vulnerability of a RAG-based LLM assistant when analyzing web
+application logs containing attacker-controlled text.
+
+The intended behavior of the system is to treat every log field as data
+to be analyzed. The attacker, however, may deliberately insert
+instructions designed to alter the output of the assistant. This creates
+a conflict between the trusted task definition and untrusted
+natural-language content.
+
+The thesis therefore investigates two related questions:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  How vulnerable is the assistant when no explicit defenses are applied?
+\item
+  To what extent can lightweight and explainable mitigation strategies
+  reduce this vulnerability without removing the usefulness of the LLM
+  and RAG pipeline?
+\end{enumerate}
+
+\section{Research Question}\label{research-question}
+
+\begin{quote}
+\textbf{How vulnerable is a RAG-based LLM assistant for web application
+log analysis to prompt injection attacks embedded in attacker-controlled
+log fields, and how can evidence-controlled retrieval and simple
+mitigation strategies reduce this risk?}
+\end{quote}
+
+\section{General Objective}\label{general-objective}
+
+Design, implement, and evaluate a RAG-based LLM assistant for web
+application log analysis, focusing on robustness against Prompt
+Injection attacks.
+
+\section{Specific Objectives}\label{specific-objectives}
+
+The specific objectives of this thesis are:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Design an LLM-based architecture for structured web application log
+  analysis.
+\item
+  Construct a cybersecurity knowledge base containing selected MITRE
+  ATT\&CK techniques, OWASP web-attack knowledge, response playbooks,
+  and prompt-injection handling policies.
+\item
+  Build a controlled dataset containing clean and adversarial web
+  application logs.
+\item
+  Define and operationalize representative Prompt Injection attacks
+  embedded in attacker-controlled log fields.
+\item
+  Implement a RAG pipeline capable of retrieving evidence relevant to
+  the analyzed event.
+\item
+  Implement lightweight mitigation mechanisms based on prompt hardening,
+  instruction/data separation, metadata tagging, simple prompt-injection
+  detection, and evidence-only prompting.
+\item
+  Compare defended and undefended system configurations under the same
+  dataset and evaluation procedure.
+\item
+  Measure attack success, classification performance, retrieval quality,
+  evidence use, hallucination behavior, and robustness.
+\item
+  Analyze failure cases and identify limitations of the proposed
+  defenses.
+\end{enumerate}
+
+\section{Scope}\label{scope}
+
+This thesis is intentionally restricted to \textbf{web application
+logs}.
+
+The system analyzes web/application request information such as:
+
+\begin{itemize}
+\tightlist
+\item
+  HTTP method,
+\item
+  URL,
+\item
+  query parameters,
+\item
+  request body,
+\item
+  User-Agent,
+\item
+  status code,
+\item
+  source IP,
+\item
+  and related structured metadata.
+\end{itemize}
+
+The experimental attack classes are limited to:
+
+\begin{itemize}
+\tightlist
+\item
+  SQL Injection,
+\item
+  Cross-Site Scripting (XSS),
+\item
+  Path Traversal,
+\item
+  Brute Force Login,
+\item
+  and Benign/Normal requests as a control class.
+\end{itemize}
+
+The study does \textbf{not} attempt to implement a complete Security
+Operations Center assistant and does not cover:
+
+\begin{itemize}
+\tightlist
+\item
+  SOC orchestration,
+\item
+  SIEM platforms,
+\item
+  SOAR platforms,
+\item
+  firewall logs,
+\item
+  EDR logs,
+\item
+  IDS/IPS logs,
+\item
+  enterprise incident management,
+\item
+  or autonomous response actions.
+\end{itemize}
+
+This restriction is important because it allows the research to isolate
+the interaction between web-log content, Prompt Injection, retrieval,
+evidence control, and LLM reasoning.
+
+\section{Research Contributions}\label{research-contributions}
+
+The expected contributions of this thesis are:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  A reproducible architecture for RAG-assisted web application log
+  analysis.
+\item
+  A controlled dataset containing paired clean and adversarial log
+  examples.
+\item
+  An operational Prompt Injection taxonomy tailored to
+  attacker-controlled web-log fields.
+\item
+  An experimental comparison between LLM-only, RAG, and defended RAG
+  configurations.
+\item
+  An evaluation methodology combining conventional classification
+  metrics with Prompt Injection robustness and evidence-grounding
+  metrics.
+\item
+  An analysis of the effectiveness and limitations of lightweight
+  mitigation strategies.
+\end{enumerate}
+
+\section{Thesis Structure}\label{thesis-structure}
+
+The remainder of this thesis is organized as follows.
+
+Chapter 2 presents the theoretical background and related work
+concerning RAG, Prompt Injection, LLM applications in cybersecurity, web
+application log analysis, evidence grounding, and Prompt Injection
+defenses. The chapter concludes by identifying the research gap
+addressed by this work.
+
+Chapter 3 defines the research methodology, scope, threat model, dataset
+strategy, experimental configurations, and evaluation metrics.
+
+Chapter 4 presents the design of the proposed system, including
+preprocessing, prompt-injection detection, retrieval, the knowledge
+base, evidence control, secure prompt construction, and structured
+output.
+
+Chapter 5 describes the dataset construction and system implementation.
+
+Chapter 6 presents the experimental results.
+
+Chapter 7 discusses the results, failure cases, limitations, and threats
+to validity.
+
+Chapter 8 concludes the thesis and proposes directions for future work.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}

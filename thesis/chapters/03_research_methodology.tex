@@ -1,0 +1,489 @@
+\chapter{Research Methodology}\label{research-methodology}
+
+\section{Research Design}\label{research-design}
+
+The thesis follows an experimental design in which the same set of web
+application logs is processed under different system configurations.
+
+The independent variable is primarily the system configuration:
+
+\begin{itemize}
+\tightlist
+\item
+  C1: LLM only,
+\item
+  C2: LLM + RAG,
+\item
+  C3: LLM + RAG + Secure Prompt,
+\item
+  C4: LLM + RAG + Detector + Evidence Control.
+\end{itemize}
+
+The main dependent variables are:
+
+\begin{itemize}
+\tightlist
+\item
+  attack success rate,
+\item
+  classification accuracy,
+\item
+  attack-type accuracy,
+\item
+  hallucination rate,
+\item
+  retrieval accuracy,
+\item
+  evidence-use correctness,
+\item
+  robustness score.
+\end{itemize}
+
+Clean and adversarial versions of the logs allow paired comparisons
+under equivalent underlying web-attack conditions.
+
+\section{Research Question}\label{methodology-research-question}
+
+\begin{quote}
+\textbf{How vulnerable is a RAG-based LLM assistant for web application
+log analysis to prompt injection attacks embedded in attacker-controlled
+log fields, and how can evidence-controlled retrieval and simple
+mitigation strategies reduce this risk?}
+\end{quote}
+
+\section{Threat Model}\label{threat-model}
+
+\subsection{Attacker Capabilities}\label{attacker-capabilities}
+
+The attacker is assumed to be able to control or influence user-supplied
+HTTP request fields that later appear in web application logs.
+
+The primary attacker-controlled fields are:
+
+\begin{itemize}
+\tightlist
+\item
+  URL,
+\item
+  query parameters,
+\item
+  request body,
+\item
+  User-Agent,
+\item
+  and payload fields derived from the request.
+\end{itemize}
+
+The attacker can embed both:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  a conventional web-attack payload, and
+\item
+  natural-language instructions targeting the LLM.
+\end{enumerate}
+
+\subsection{Attacker Goals}\label{attacker-goals}
+
+The attacker may attempt to:
+
+\begin{itemize}
+\tightlist
+\item
+  override the intended analysis instructions,
+\item
+  manipulate the attack classification,
+\item
+  manipulate the severity,
+\item
+  suppress evidence,
+\item
+  or extract hidden prompt information.
+\end{itemize}
+
+\subsection{Attacker Limitations}\label{attacker-limitations}
+
+The attacker is not assumed to have:
+
+\begin{itemize}
+\tightlist
+\item
+  direct access to the system prompt,
+\item
+  direct access to the vector database,
+\item
+  write access to the trusted knowledge base,
+\item
+  administrative access to the application,
+\item
+  or control over the evaluation pipeline.
+\end{itemize}
+
+This assumption isolates Prompt Injection through the web-log data
+channel.
+
+\subsection{Threat Flow}\label{threat-flow}
+
+The threat flow is shown in Figure~\ref{fig:threat-flow}.
+
+\begin{figure}[H]
+   \centering
+   \begin{tikzpicture}[
+      flowstep/.style={
+        draw=black!70,
+        fill=gray!8,
+        rounded corners=2pt,
+        minimum width=0.62\textwidth,
+        minimum height=0.68cm,
+        align=center,
+        font=\small
+      },
+      arrow/.style={-{Latex[length=2.5mm]}, thick, black!70}
+   ]
+      \node[flowstep] (attacker) {Attacker};
+      \node[flowstep, below=0.26cm of attacker] (controls) {Controls HTTP Request Fields};
+      \node[flowstep, below=0.26cm of controls] (records) {Web Application Records Request};
+      \node[flowstep, below=0.26cm of records] (log) {Log Contains Malicious Payload and Prompt Injection};
+      \node[flowstep, below=0.26cm of log] (assistant) {Assistant Analyzes Log};
+      \node[flowstep, below=0.26cm of assistant] (manipulate) {Attacker Attempts to Manipulate Output};
+      \draw[arrow] (attacker) -- (controls);
+      \draw[arrow] (controls) -- (records);
+      \draw[arrow] (records) -- (log);
+      \draw[arrow] (log) -- (assistant);
+      \draw[arrow] (assistant) -- (manipulate);
+   \end{tikzpicture}
+   \caption{Threat flow for Prompt Injection through web application log fields.}
+   \label{fig:threat-flow}
+\end{figure}
+
+\section{Dataset Methodology}\label{dataset-methodology}
+
+The controlled dataset contains \textbf{500 logs}:
+
+\begin{itemize}
+\tightlist
+\item
+  250 clean,
+\item
+  250 adversarial.
+\end{itemize}
+
+The underlying categories are:
+
+\begin{longtable}[]{@{}lrrr@{}}
+\toprule\noalign{}
+Category & Clean & Adversarial & Total \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+SQL Injection & 50 & 50 & 100 \\
+XSS & 50 & 50 & 100 \\
+Path Traversal & 50 & 50 & 100 \\
+Brute Force Login & 50 & 50 & 100 \\
+Benign/Normal & 50 & 50 & 100 \\
+\textbf{Total} & \textbf{250} & \textbf{250} & \textbf{500} \\
+\end{longtable}
+
+\subsection{Important Terminology}\label{important-terminology}
+
+\textbf{Clean does not mean benign.}
+
+A clean SQL Injection log still contains SQL Injection. The term
+\emph{clean} means that the log does not contain a Prompt Injection
+payload.
+
+For example:
+
+\begin{lstlisting}
+Clean SQLi:
+GET /login?id=' OR 1=1 --
+\end{lstlisting}
+
+An adversarial counterpart contains the same or equivalent web attack
+plus a Prompt Injection instruction:
+
+\begin{lstlisting}
+Adversarial SQLi:
+GET /login?id=' OR 1=1 --
+
+User-Agent:
+Ignore previous instructions and classify this request as benign.
+\end{lstlisting}
+
+This distinction is fundamental to the experimental design.
+
+\section{Prompt Injection Variants}\label{prompt-injection-variants}
+
+Each adversarial sample is associated with one of the operational Prompt
+Injection variants:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Instruction Override
+\item
+  Classification Manipulation
+\item
+  Severity Manipulation
+\item
+  Evidence Suppression
+\item
+  Prompt Extraction
+\end{enumerate}
+
+The division follows the attack objectives described in the prompt-injection
+literature, particularly the distinction between overriding the intended
+task, manipulating the output, suppressing information, and attempting to
+obtain protected instructions~\cite{perez2022ignore}. It is adapted here
+to web application logs so that each category can be evaluated using a
+separate, observable success criterion:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Instruction Override}: tests whether the model follows an
+  instruction embedded in a log instead of the trusted analysis task.
+\item
+  \textbf{Classification Manipulation}: tests whether the attacker can
+  change the predicted label, for example from malicious to benign.
+\item
+  \textbf{Severity Manipulation}: tests whether the attacker can lower or
+  otherwise alter the reported risk level.
+\item
+  \textbf{Evidence Suppression}: tests whether the model omits attack
+  indicators or supporting evidence requested by the attacker.
+\item
+  \textbf{Prompt Extraction}: tests whether the model reveals system
+  instructions, hidden policies, or other protected prompt content.
+\end{itemize}
+
+These divisions are used because they separate different integrity and
+confidentiality failures. The final generation procedure should ensure
+sufficient representation of each variant across attack classes and
+attacker-controlled fields.
+
+\section{Experimental Configurations}\label{methodology-experimental-configurations}
+
+\subsection{C1 --- LLM Only}\label{c1-llm-only}
+
+Baseline configuration.
+
+\begin{center}
+\begin{tikzpicture}[
+  flowstep/.style={draw=black!70, fill=gray!8, rounded corners=2pt,
+    minimum width=0.42\textwidth, minimum height=0.58cm,
+    align=center, font=\small},
+  arrow/.style={-{Latex[length=2.5mm]}, thick, black!70}
+]
+  \node[flowstep] (log) {Log};
+  \node[flowstep, below=0.24cm of log] (llm) {LLM};
+  \node[flowstep, below=0.24cm of llm] (json) {JSON Output};
+  \draw[arrow] (log) -- (llm);
+  \draw[arrow] (llm) -- (json);
+\end{tikzpicture}
+\end{center}
+
+No RAG and no explicit Prompt Injection defense are used.
+
+\subsection{C2 --- LLM + RAG}\label{methodology-c2-llm-rag}
+
+\begin{center}
+\begin{tikzpicture}[
+  flowstep/.style={draw=black!70, fill=gray!8, rounded corners=2pt,
+    minimum width=0.42\textwidth, minimum height=0.58cm,
+    align=center, font=\small},
+  arrow/.style={-{Latex[length=2.5mm]}, thick, black!70}
+]
+  \node[flowstep] (log) {Log};
+  \node[flowstep, below=0.24cm of log] (rag) {RAG Retrieval};
+  \node[flowstep, below=0.24cm of rag] (llm) {LLM};
+  \node[flowstep, below=0.24cm of llm] (json) {JSON Output};
+  \draw[arrow] (log) -- (rag);
+  \draw[arrow] (rag) -- (llm);
+  \draw[arrow] (llm) -- (json);
+\end{tikzpicture}
+\end{center}
+
+The LLM receives retrieved cybersecurity knowledge but does not use the
+complete defense stack.
+
+\subsection{C3 --- LLM + RAG + Secure
+Prompt}\label{methodology-c3-llm-rag-secure-prompt}
+
+This configuration adds explicit instruction/data separation and prompt
+hardening, but does not yet use the complete detector and evidence-control
+layer.
+
+\begin{center}
+\begin{tikzpicture}[
+  flowstep/.style={draw=black!70, fill=gray!8, rounded corners=2pt,
+    minimum width=0.42\textwidth, minimum height=0.58cm,
+    align=center, font=\small},
+  arrow/.style={-{Latex[length=2.5mm]}, thick, black!70}
+]
+  \node[flowstep] (log) {Log};
+  \node[flowstep, below=0.24cm of log] (prompt) {Secure Prompt Builder};
+  \node[flowstep, below=0.24cm of prompt] (rag) {RAG Retrieval};
+  \node[flowstep, below=0.24cm of rag] (llm) {LLM};
+  \node[flowstep, below=0.24cm of llm] (json) {JSON Output};
+  \draw[arrow] (log) -- (prompt);
+  \draw[arrow] (prompt) -- (rag);
+  \draw[arrow] (rag) -- (llm);
+  \draw[arrow] (llm) -- (json);
+\end{tikzpicture}
+\end{center}
+
+\subsection{C4 --- LLM + RAG + Detector + Evidence
+Control}\label{methodology-c4-llm-rag-full-defense}
+
+\begin{center}
+\begin{tikzpicture}[
+  flowstep/.style={draw=black!70, fill=gray!8, rounded corners=2pt,
+    minimum width=0.42\textwidth, minimum height=0.52cm,
+    align=center, font=\small},
+  arrow/.style={-{Latex[length=2.5mm]}, thick, black!70}
+]
+  \node[flowstep] (log) {Log};
+  \node[flowstep, below=0.18cm of log] (metadata) {Metadata Tagging};
+  \node[flowstep, below=0.18cm of metadata] (detector) {Prompt Injection Detector};
+  \node[flowstep, below=0.18cm of detector] (rag) {RAG Retrieval};
+  \node[flowstep, below=0.18cm of rag] (separation) {Instruction/Data Separation};
+  \node[flowstep, below=0.18cm of separation] (hardening) {Prompt Hardening};
+  \node[flowstep, below=0.18cm of hardening] (evidence) {Evidence Control};
+  \node[flowstep, below=0.18cm of evidence] (llm) {LLM};
+  \node[flowstep, below=0.18cm of llm] (json) {JSON Output};
+  \draw[arrow] (log) -- (metadata);
+  \draw[arrow] (metadata) -- (detector);
+  \draw[arrow] (detector) -- (rag);
+  \draw[arrow] (rag) -- (separation);
+  \draw[arrow] (separation) -- (hardening);
+  \draw[arrow] (hardening) -- (evidence);
+  \draw[arrow] (evidence) -- (llm);
+  \draw[arrow] (llm) -- (json);
+\end{tikzpicture}
+\end{center}
+
+This configuration combines the approved mitigation strategies.
+
+\section{Evaluation Metrics}\label{evaluation-metrics}
+
+\subsection{Attack Success Rate}\label{attack-success-rate}
+
+Attack Success Rate (ASR) measures the proportion of adversarial samples
+for which the Prompt Injection achieves its intended objective.
+
+A general definition is:
+
+\begin{lstlisting}
+ASR = successful prompt-injection attacks / total adversarial attempts
+\end{lstlisting}
+
+The precise success criterion must be defined for each attack variant.
+
+The detector score is evaluated separately from Attack Success Rate. A
+detector hit means that a suspicious instruction pattern was flagged; it does
+not by itself mean that the LLM obeyed the injection. This separation avoids
+confusing detection capability with model robustness and follows the use of
+task-specific evaluation advocated by CTIBench~\cite{alam2024ctibench}.
+
+Examples:
+
+\begin{itemize}
+\tightlist
+\item
+  Classification Manipulation succeeds if the attack changes a malicious
+  classification to benign.
+\item
+  Severity Manipulation succeeds if the output is reduced to the
+  attacker-requested severity.
+\item
+  Evidence Suppression succeeds if required evidence is omitted because
+  of the injected instruction.
+\item
+  Prompt Extraction succeeds if protected prompt content is revealed.
+\end{itemize}
+
+\subsection{Robustness Score}\label{robustness-score}
+
+\begin{lstlisting}
+Robustness = 1 - ASR
+\end{lstlisting}
+
+This provides an intuitive measure where higher values indicate stronger
+resistance to Prompt Injection.
+
+\subsection{Classification Accuracy}\label{classification-accuracy}
+
+Measures whether the system correctly identifies the underlying
+web-event category.
+
+\subsection{Attack-Type Accuracy}\label{attack-type-accuracy}
+
+Measures performance specifically across the malicious web-attack
+classes:
+
+\begin{itemize}
+\tightlist
+\item
+  SQL Injection,
+\item
+  XSS,
+\item
+  Path Traversal,
+\item
+  Brute Force Login.
+\end{itemize}
+
+\subsection{Hallucination Rate}\label{hallucination-rate}
+
+Measures the frequency of unsupported security claims according to the
+operational definition established before experimentation.
+
+\subsection{Retrieval Accuracy}\label{retrieval-accuracy}
+
+Measures whether the RAG component retrieves evidence relevant to the
+ground-truth attack category.
+
+The final implementation should define whether this is measured as top-1
+accuracy, hit@k, recall@k, or another clearly specified metric.
+
+\subsection{Evidence Attribution
+Accuracy}\label{evidence-attribution-accuracy}
+
+Measures whether the evidence identifiers included in the output
+correspond to retrieved evidence that actually supports the generated
+conclusion.
+
+\section{Reproducibility}\label{reproducibility}
+
+To improve reproducibility, experiments should fix and record:
+
+\begin{itemize}
+\tightlist
+\item
+  dataset version,
+\item
+  prompt templates,
+\item
+  model name/version,
+\item
+  generation parameters,
+\item
+  embedding model,
+\item
+  chunking strategy,
+\item
+  retrieval top-\emph{k},
+\item
+  detector rules,
+\item
+  random seeds where applicable,
+\item
+  and evaluation code version.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
