@@ -454,11 +454,24 @@ untrusted data to be analyzed, never as instructions to be executed.}
 \subsection{Operational Prompt Injection
 Taxonomy}\label{operational-prompt-injection-taxonomy}
 
-The thesis uses five operational Prompt Injection variants. They are
-based on broader concepts such as goal hijacking and prompt leaking
-discussed by Perez and Ribeiro~\cite{perez2022ignore}, but are defined
-specifically for the web-log analysis task.
+Perez and Ribeiro~\cite{perez2022ignore} discuss objectives such as goal
+hijacking and prompt leaking. Building on these, this thesis defines five
+variants for attacker-controlled log fields: instruction override,
+classification manipulation, severity manipulation, evidence suppression,
+and prompt extraction. They were selected because they capture distinct
+risks to task adherence, report integrity, evidence completeness, and
+prompt confidentiality. Classification and severity are separate because
+they target different report fields.
 
+Each sample is labelled by the main result its injected text seeks, such
+as changing the attack classification. We measure whether that result
+appears in the assistant's report separately from whether the detector
+flags the text: a detector warning alone does not show whether the model
+resisted the attack. This study covers instructions embedded in log fields,
+not direct user prompts, changes to the knowledge base, or attacks using
+tools.
+
+\newpage
 \subsubsection{Instruction Override}\label{instruction-override}
 
 The attacker attempts to replace the trusted task instructions.
@@ -962,15 +975,10 @@ or evidence references that do not support the claim.
 \subsection{Evidence Attribution}\label{evidence-attribution}
 
 The proposed architecture associates retrieved chunks with identifiers
-such as:
+such as \texttt{[E1]}, \texttt{[E2]}, and \texttt{[E3]}.
 
-\begin{lstlisting}
-[E1]
-[E2]
-[E3]
-\end{lstlisting}
-
-The output can then report:
+The output can then report the identifiers of the supporting chunks in a
+structured field:
 
 \begin{lstlisting}
 {
@@ -1111,20 +1119,19 @@ evaluated as part of the complete defense.
 
 Fields can be tagged according to trust characteristics.
 
-For example:
-
-\begin{lstlisting}
-Trusted/structured metadata:
-- timestamp
-- status_code
-- src_ip
-
-Untrusted/user-controlled data:
-- url
-- query_parameters
-- user_agent
-- request_body
-\end{lstlisting}
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{@{}p{0.32\textwidth}X@{}}
+\toprule
+\textbf{Trust category} & \textbf{Example fields} \\
+\midrule
+Trusted or structured & \texttt{timestamp}, \texttt{status\_code},
+\texttt{src\_ip} \\
+Untrusted or user-controlled & \texttt{url}, \texttt{query\_parameters},
+\texttt{user\_agent}, \texttt{request\_body} \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 This metadata can be used during prompt construction to reinforce the
 distinction between application-controlled and attacker-controlled
@@ -1192,50 +1199,56 @@ The intended design is shown in Figure~\ref{fig:defense-in-depth-flow}.
 \subsection{Related Work and Paper Selection}
 \label{related-work-paper-selection}
 
-The papers supplied for this thesis cover three complementary areas:
-LLM-based cyber threat intelligence, cybersecurity-oriented RAG, and the
-evaluation of RAG systems. They are useful for positioning the proposed
-assistant, but they do not all need to become implementation dependencies.
+The literature relevant to this thesis spans three connected topics: the
+RAG architecture, indirect Prompt Injection, and the use and evaluation of
+RAG in cybersecurity. Reviewing these works first makes it possible to
+distinguish the broad literature from the three works that provide the
+thesis's main conceptual and technical foundations.
 
-Tellache et al.~\cite{tellache2025incident} propose a RAG framework for
-incident response that combines vector similarity search with external CTI
-queries and evaluates answer relevance, context relevance, and groundedness.
-Its main value for this thesis is the idea of enriching a security event with
-continuously updated CTI. It is not adopted as the implementation baseline
-because the present work does not build an autonomous incident-response
-workflow or integrate external CTI APIs.
+Lewis et al.~\cite{lewis2020rag} establish the RAG formulation used here:
+retrieving external information and supplying it to a generator at
+inference time. Their work provides the general architecture, but does not
+address cybersecurity or adversarial instructions in retrieved or analyzed
+content.
 
-CTIBench~\cite{alam2024ctibench} provides tasks for evaluating LLMs in
-cyber threat intelligence, including vulnerability mapping, CVSS scoring,
-ATT\&CK technique extraction, and threat-actor analysis. It motivates the
-use of explicit ground truth and task-specific evaluation rather than relying
-only on qualitative examples. Its broad CTI task suite is outside the scope
-of this thesis, which focuses on web application logs.
+For the security threat, Perez and Ribeiro~\cite{perez2022ignore} describe
+instruction-based attacks such as goal hijacking and prompt leaking.
+Greshake et al.~\cite{greshake2023indirect} examine indirect Prompt
+Injection, in which malicious instructions arrive through external content
+processed by an LLM-integrated application. This indirect setting is the
+closest precedent for the present threat model: an attacker places
+instructions in request fields that later appear in logs. The attack
+categories in this thesis are adapted to the log-analysis task rather than
+copied as a ready-made dataset.
 
-CyKG-RAG~\cite{kurniawan2024cykgrag} integrates a cybersecurity knowledge
-graph with RAG to represent relations between attacks, entities, and threat
-patterns. This work supports the use of structured security knowledge, but a
-knowledge graph would add a significant modelling and maintenance burden to
-the present experimental system. The thesis therefore uses a curated
-document knowledge base with metadata and evidence identifiers instead.
+Among cybersecurity applications, Tellache et
+al.~\cite{tellache2025incident} use RAG to enrich incident response with
+cyber threat intelligence (CTI), while Alhuzali~\cite{alhuzali2025ragintel}
+presents RAGIntel, which applies MITRE ATT\&CK-oriented knowledge and
+retrieval to cyber-attack investigation. These works demonstrate how
+retrieved security knowledge can support analysis, but neither evaluates
+Prompt Injection embedded in attacker-controlled web logs. Tellache et al.'s
+external CTI queries and incident-response workflow are also outside this
+thesis's experimental scope.
 
-The ``Know Your RAG'' study~\cite{lima2024knowyourrag} is especially useful
-for evaluation design. It shows that RAG datasets should be characterized by
-the type of question and evidence relationship they contain, because an
-unbalanced evaluation set can produce misleading retrieval results. This
-supports the proposed paired clean/adversarial dataset and the separate
-measurement of retrieval quality and generation robustness.
+Other studies inform specific design choices. CTIBench by Alam et
+al.~\cite{alam2024ctibench} motivates task-specific benchmarks and explicit
+ground truth for cybersecurity evaluation, although its CTI tasks are not
+the tasks evaluated here. CyKG-RAG by Kurniawan et
+al.~\cite{kurniawan2024cykgrag} explores graph-enhanced retrieval; the
+present work instead uses a curated document collection to keep the
+experimental system manageable. Lima et al.'s ``Know Your
+RAG''~\cite{lima2024knowyourrag} emphasizes that evaluation datasets should
+be characterized by their questions and evidence relationships. This
+supports the thesis's balanced clean/adversarial design and separate
+retrieval and generation metrics, without requiring adoption of its
+taxonomy.
 
-Finally, Alhuzali~\cite{alhuzali2025ragintel} presents RAGIntel, a RAG-based
-LLM system for cyber-attack investigation using MITRE ATT\&CK and hybrid
-retrieval with reranking and compression. It is the closest supplied example
-of a cybersecurity RAG assistant, although its task is CTI attack
-investigation rather than adversarial web-log analysis.
-
-Table~\ref{tab:related-work-papers} summarizes the comparison.
+Table~\ref{tab:related-work-papers} summarizes the contribution and role of
+each work.
 
 \begin{longtable}{@{}p{0.21\textwidth}p{0.28\textwidth}p{0.40\textwidth}@{}}
-\caption{Comparison of supplied related work and its role in this thesis.}
+\caption{Related work and its role in this thesis.}
 \label{tab:related-work-papers}\\
 \toprule
 Paper & Main contribution & Relevance and limitation for this thesis \\
@@ -1247,149 +1260,134 @@ Paper & Main contribution & Relevance and limitation for this thesis \\
 \endhead
 \bottomrule
 \endlastfoot
-Tellache et al. & RAG-based CTI enrichment for incident response. & Supports dynamic CTI grounding; autonomous response and external CTI APIs are outside scope. \\
-CTIBench & Benchmark tasks for LLM-based cyber threat intelligence. & Supports task-specific ground truth and evaluation; its broad CTI tasks are not used. \\
-CyKG-RAG & Knowledge-graph-enhanced RAG for cybersecurity. & Motivates structured security knowledge; a graph is not required for the controlled thesis prototype. \\
-Lima et al. & Taxonomy and generation strategies for RAG evaluation datasets. & Guides balanced evaluation data and retrieval assessment; the thesis adapts the principle to web logs. \\
-Alhuzali & RAGIntel for MITRE ATT\&CK-based attack investigation. & Provides the closest cybersecurity RAG precedent; it does not study Prompt Injection in attacker-controlled logs. \\
+Lewis et al. & General RAG formulation. & Provides the retrieval-and-generation foundation; it does not address this security threat. \\
+Perez and Ribeiro & Instruction-based attacks against language models. & Informs the operational attack categories; it is not specific to RAG or web logs. \\
+Greshake et al. & Indirect Prompt Injection in LLM-integrated applications. & Informs the attacker-through-external-data threat model; web logs are the thesis's adaptation. \\
+Tellache et al. & RAG-based CTI enrichment for incident response. & Context for security grounding; external CTI queries and autonomous response are outside scope. \\
+CTIBench & Benchmark tasks for LLM-based cyber threat intelligence. & Supports task-specific evaluation; its broad CTI tasks are not used. \\
+CyKG-RAG & Knowledge-graph-enhanced RAG for cybersecurity. & Shows a structured-knowledge alternative; this thesis uses curated documents instead. \\
+Lima et al. & Taxonomy and generation strategies for RAG evaluation datasets. & Informs dataset balance and separate retrieval assessment; its taxonomy is not adopted wholesale. \\
+Alhuzali & RAGIntel for MITRE ATT\&CK-based attack investigation. & Closest cybersecurity RAG precedent; it does not study Prompt Injection in attacker-controlled logs. \\
 \end{longtable}
 
-\subsubsection{Final Papers Used for Development}
-\label{final-papers-used-for-development}
+\subsubsection{Three Foundational Works for This Thesis}
+\label{three-foundational-works}
 
-Although all five supplied papers inform the literature review, the
-implementation will rely primarily on three of them. The selection is based
-on direct methodological usefulness: one paper informs the cybersecurity RAG
-architecture, one informs the evaluation tasks and ground truth, and one
-informs the construction of the RAG evaluation dataset.
+The thesis is primarily grounded in the following three works, selected
+because together they cover its system paradigm, central security threat,
+and cybersecurity application context:
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
 \tightlist
+\setlength{\itemsep}{0.7em}
 \item
-  \textbf{Alhuzali, RAGIntel}: this paper is used as the closest architectural
-  precedent for the proposed assistant. From it, the thesis adopts the idea
-  of combining an LLM with a curated cybersecurity knowledge base, using
-  MITRE ATT\&CK-oriented evidence and retrieving relevant context before
-  generation. The thesis also adopts retrieval quality as an independent
-  concern and considers reranking as an optional retrieval improvement. The
-  full RAGIntel system is not reproduced because this thesis does not perform
-  general CTI investigation or autonomous incident response.
+  \textbf{Lewis et al., ``Retrieval-Augmented Generation for Knowledge-Intensive
+  NLP Tasks''}: introduce a framework that combines a pre-trained
+  sequence-to-sequence generator with a neural retriever and an external
+  dense-vector index. Their paper compares two variants: RAG-Sequence uses
+  the retrieved passages to condition the generated sequence, whereas
+  RAG-Token can condition individual generated tokens on different
+  passages. They evaluate both variants on knowledge-intensive NLP tasks,
+  including open-domain question answering, and report improvements over
+  parametric-only baselines on several tasks. For this thesis, the paper
+  provides the conceptual basis for retrieving external cybersecurity
+  knowledge at analysis time. The proposed system applies that principle
+  to web logs and a curated security knowledge base; it does not reproduce
+  the paper's Wikipedia index, models, or benchmark tasks.
 \item
-  \textbf{Alam et al., CTIBench}: this paper is used to justify task-specific
-  ground truth and measurable evaluation in a cybersecurity setting. The
-  thesis applies this principle by assigning each log an expected label,
-  web-attack type, adversarial condition, injection type, and supporting
-  evidence. The CTIBench tasks themselves, such as CVE-to-CWE mapping and
-  CVSS scoring, are not imported because they do not match the web-log scope.
+  \textbf{Greshake et al., ``Not What You Have Signed Up For''}: study
+  indirect Prompt Injection in LLM-integrated applications. In this attack
+  setting, the adversary places instructions in external content that an
+  application later retrieves or processes, rather than sending them
+  directly through the LLM interface. The authors show how this blurring of
+  the boundary between instructions and data can let malicious content
+  alter an application's behavior, and analyze attack impacts across
+  real-world and constructed applications. This work grounds the thesis's
+  assumption that attacker-controlled content can influence downstream LLM
+  processing. The present study adapts that threat to HTTP fields recorded
+  in web application logs, then measures its effect on attack analysis;
+  Greshake et al. do not specifically evaluate web logs or the defenses
+  compared here.
 \item
-  \textbf{Lima et al., Know Your RAG}: this paper is used to design a
-  balanced evaluation dataset and to avoid treating one aggregate score as
-  sufficient evidence of RAG quality. The thesis applies its evaluation
-  principle by maintaining paired clean and adversarial logs, distributing
-  samples across attack classes and Prompt Injection variants, and measuring
-  retrieval accuracy separately from classification, hallucination, and
-  robustness metrics. Its general question--context taxonomy is adapted to
-  security logs rather than copied directly.
+  \textbf{Alhuzali, ``LLM-Powered Threat Intelligence'' (RAGIntel)}:
+  presents a RAG system for investigating cyberattacks using structured
+  threat intelligence from MITRE ATT\&CK. Its retrieval pipeline combines
+  keyword-based BM25 search with dense retrieval, merges the results, and
+  applies reranking and context compression before providing evidence to
+  the generator. The authors evaluate the system on 339 attack-investigation
+  queries from three datasets, using several language models and RAGAS
+  metrics, and compare the results with standalone LLMs. Their results vary
+  across datasets and models, illustrating that retrieval does not
+  automatically guarantee better answers and must itself be evaluated.
+  RAGIntel is the closest of the three works to this thesis's cybersecurity
+  application: it motivates using structured threat knowledge and measuring
+  retrieval and generation separately. The present work differs in its
+  input (web application logs), threat (Prompt Injection in attacker-controlled
+  fields), and focus on comparing lightweight defenses; it does not reproduce
+  RAGIntel's CTI datasets or retrieval pipeline.
 \end{enumerate}
 
-The remaining foundational and security papers have distinct roles in the
-design. Lewis et al.~\cite{lewis2020rag} provide the original RAG formulation
-used to define the pipeline adopted here: retrieve external evidence and
-provide it to the generator at inference time. This thesis uses that concept
-but specializes the retrieved collection to OWASP material, a limited MITRE
-ATT\&CK subset, response playbooks, and Prompt Injection policies.
-
-Perez and Ribeiro~\cite{perez2022ignore} provide the basis for modelling
-direct instruction attacks such as instruction override, classification
-manipulation, severity manipulation, evidence suppression, and prompt
-extraction. The thesis uses these ideas to construct adversarial text inside
-attacker-controlled log fields and to define attack success criteria. The
-paper is not used as a ready-made dataset because the experiments require
-paired web-log examples with explicit ground truth.
-
-Greshake et al.~\cite{greshake2023indirect} support the threat model in which
-the attacker does not address the LLM directly, but places malicious
-instructions in external data that the application later processes. The
-thesis applies this model to URLs, query parameters, User-Agent values,
-request bodies, and payload fields. This paper therefore informs the threat
-model and security rationale, not the implementation of the detector.
-
-Tellache et al.~\cite{tellache2025incident} and Kurniawan et al.~
-\cite{kurniawan2024cykgrag} remain contextual related work. The former
-motivates CTI enrichment and grounded incident analysis, while the latter
-motivates structured relations in cybersecurity knowledge. Neither is made a
-required system component because external CTI APIs, autonomous response,
-and knowledge-graph construction would expand the scope beyond the controlled
-web-log experiment.
+The remaining works remain part of the literature review and support
+particular design decisions rather than defining the thesis's core basis.
+Perez and Ribeiro inform the attack taxonomy; CTIBench and ``Know Your RAG''
+inform task-specific ground truth and evaluation design; and CyKG-RAG and
+Tellache et al. provide alternative approaches to cybersecurity knowledge
+and CTI enrichment. These contributions are used selectively, without
+importing their full systems, datasets, or evaluation tasks. Taken together,
+the reviewed studies provide complementary foundations for the proposed
+work. The following section explains how this thesis brings those strands
+together for the focused task of web application log analysis under Prompt
+Injection.
 
 \section{Research Gap}\label{research-gap}
 
-Existing work demonstrates three important trends.
+The literature reviewed in this chapter provides foundations for RAG,
+indirect Prompt Injection, and cybersecurity applications of LLMs. It
+therefore offers a basis for designing a RAG-based security assistant, while
+leaving room to examine these topics in the specific setting addressed by
+this thesis: analysis of web application logs containing
+attacker-controlled instructions. In particular, further empirical study
+is needed to understand how such instructions affect attack classification
+and evidence-supported analysis, and whether lightweight mitigations can
+reduce their influence.
 
-First, LLMs are increasingly applied to cybersecurity tasks because they
-can interpret heterogeneous technical information and produce
-natural-language explanations.
-
-Second, RAG is widely used to improve access to domain-specific
-information and to ground generated answers in external evidence.
-
-Third, Prompt Injection has emerged as a major security problem for
-LLM-integrated applications, especially when models process untrusted
-external content.
-
-However, these areas are frequently studied separately. General Prompt
-Injection research often focuses on conversational interfaces, agents,
-or retrieved documents. Cybersecurity-oriented LLM studies often
-emphasize task performance rather than adversarial manipulation of the
-model through the data being analyzed. Similarly, conventional web-log
-analysis research typically assumes that log contents are passive data
-rather than natural-language instructions capable of influencing an LLM.
-
-This thesis focuses on the intersection of these problems:
+Accordingly, this thesis addresses the following focused research problem:
 
 \begin{quote}
-\textbf{attacker-controlled natural-language instructions embedded
-directly inside web application log fields that are subsequently
-analyzed by a RAG-based LLM assistant.}
+\textbf{designing, implementing, and evaluating a RAG-based LLM assistant
+for web application log analysis, with a focus on robustness against
+Prompt Injection embedded in attacker-controlled log fields.}
 \end{quote}
 
-The research gap is therefore not simply whether Prompt Injection
-exists, nor whether RAG can support cybersecurity analysis. The gap
-concerns the robustness of an evidence-grounded web-log analysis
-pipeline when the security evidence itself contains adversarial
-instructions.
+The objective is not to propose a new general-purpose RAG architecture or
+to claim a complete solution to Prompt Injection. Instead, the thesis
+builds a controlled assistant and compares four configurations: an LLM-only
+baseline (C1), RAG (C2), RAG with a secure prompt (C3), and RAG with a
+detector and evidence control (C4). Paired clean and adversarial logs are
+used to assess whether the mitigations reduce Prompt Injection success
+while preserving web-attack classification and evidence-supported output.
 
 The security framing also follows current guidance for LLM-integrated
 applications, including the OWASP Top 10 for Large Language Model
 Applications~\cite{owasp2025llmtop10}.
 
-The thesis addresses this gap by:
+This objective is operationalized through the following activities:
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
 \tightlist
 \item
-  constructing paired clean and adversarial web-log examples,
+  constructing paired clean and adversarial web-log examples across the
+  defined web-attack and Prompt Injection categories,
 \item
-  evaluating multiple operational Prompt Injection variants,
+  comparing the four configurations under the same controlled dataset,
 \item
-  comparing LLM-only and RAG-based configurations,
+  evaluating attack success, classification, retrieval, evidence use, and
+  hallucination,
 \item
-  applying a lightweight layered defense,
-\item
-  and measuring both task performance and adversarial robustness.
+  assessing whether the prompt, detector, and evidence-control measures
+  improve robustness without obscuring the underlying web-attack analysis.
 \end{enumerate}
-
-This research gap leads directly to the research question defined in
-Chapter 1.
-
-\begin{quote}
-\textbf{Literature-review requirement:} Before final submission, this
-section must be supported by a focused comparison table of the closest
-papers. The table should identify for each paper: task, data source, use
-of RAG, Prompt Injection evaluation, cybersecurity domain, metrics,
-limitations, and how the present thesis differs.
-\end{quote}
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
