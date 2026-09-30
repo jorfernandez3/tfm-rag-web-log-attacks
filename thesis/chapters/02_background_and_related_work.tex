@@ -454,22 +454,88 @@ untrusted data to be analyzed, never as instructions to be executed.}
 \subsection{Operational Prompt Injection
 Taxonomy}\label{operational-prompt-injection-taxonomy}
 
-Perez and Ribeiro~\cite{perez2022ignore} discuss objectives such as goal
-hijacking and prompt leaking. Building on these, this thesis defines five
-variants for attacker-controlled log fields: instruction override,
-classification manipulation, severity manipulation, evidence suppression,
-and prompt extraction. They were selected because they capture distinct
-risks to task adherence, report integrity, evidence completeness, and
-prompt confidentiality. Classification and severity are separate because
-they target different report fields.
+Perez and Ribeiro~\cite{perez2022ignore} define two attack objectives.
+In goal hijacking, the attacker misaligns the prompt's original goal so
+that the model prints a chosen target phrase. In prompt leaking, the
+attacker redirects the model to reveal part or all of the original prompt.
+The former definition is tied to the target-string task studied in their
+paper; this thesis extends its goal-hijacking concept to changes in the
+assistant's log-analysis output.
 
-Each sample is labelled by the main result its injected text seeks, such
-as changing the attack classification. We measure whether that result
-appears in the assistant's report separately from whether the detector
-flags the text: a detector warning alone does not show whether the model
-resisted the attack. This study covers instructions embedded in log fields,
-not direct user prompts, changes to the knowledge base, or attacks using
-tools.
+Yi et al.~\cite{yi2025bipia} offer a complementary classification for
+text attacks in BIPIA, a benchmark for indirect Prompt Injection. A
+task-irrelevant attack redirects the model away from the user's original
+task; a task-relevant attack seeks to change the response while remaining
+within that task; and a targeted attack seeks a specific malicious
+outcome by disrupting the output. These categories describe how an
+injection relates to the task, rather than defining the same objectives
+as Perez and Ribeiro. The table therefore indicates the closest BIPIA
+category for each thesis-specific subclass, not a one-to-one equivalence.
+Perez and Ribeiro describe two broad attack objectives, while BIPIA
+distinguishes three categories of text attacks. Because these schemes
+classify attacks along different dimensions, their labels are not simply
+added together. Instead, this thesis draws on both as complementary
+foundations and defines five task-specific variants for attacker-controlled
+log fields. This finer-grained set is intended to cover distinct observable
+effects on log analysis; having five categories does not by itself establish
+greater robustness or validation.
+
+The selected Prompt Injection variants are:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Instruction Override
+\item
+  Classification Manipulation
+\item
+  Severity Manipulation
+\item
+  Evidence Suppression
+\item
+  Prompt Extraction
+\end{enumerate}
+
+Together, they cover attempts to override the task, alter report fields,
+withhold supporting evidence, or disclose protected prompt content.
+Classification and severity are separate because they affect distinct
+fields and can succeed independently. These are Prompt Injection variants,
+not the web-attack classes analyzed by the assistant.
+
+These categories form a study-specific operational taxonomy, not an
+established, exhaustive, or externally validated classification. They
+adapt the broad objectives of Perez and Ribeiro and the task-oriented
+categories of BIPIA to observable effects on web-log analysis. The
+selection supports consistent dataset construction and outcome-based
+evaluation: each sample is assigned the category matching its primary
+intended effect. Since this study does not conduct independent expert
+review or inter-annotator testing, the taxonomy's content validity and
+annotation reliability remain to be established.
+
+\begin{table}[H]
+\centering
+\caption{Literature categories and corresponding thesis-specific variants.}
+\label{tab:taxonomy-mapping}
+\small
+\begin{tabularx}{\textwidth}{@{}p{0.27\textwidth}p{0.20\textwidth}X@{}}
+\toprule
+\textbf{Perez and Ribeiro} & \textbf{BIPIA category} & \textbf{Thesis variant and intended effect} \\
+\midrule
+Goal hijacking (adapted) & Task-irrelevant & \textbf{Instruction Override}: Replace the trusted analysis instructions. \\
+Goal hijacking (adapted) & Task-relevant & \textbf{Classification Manipulation}: Change the predicted attack label. \\
+Goal hijacking (adapted) & Task-relevant & \textbf{Severity Manipulation}: Alter the reported severity. \\
+Goal hijacking (adapted) & Task-relevant & \textbf{Evidence Suppression}: Omit attack indicators or supporting evidence. \\
+Prompt leaking & Targeted & \textbf{Prompt Extraction}: Disclose hidden prompt or policy content. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Each sample is assigned its primary intended outcome. Evaluation checks
+whether that outcome appears in the assistant's report, separately from
+whether the detector flags the text. The scope is limited to instructions
+embedded in logs, excluding direct user prompts, knowledge-base changes,
+and attacks using tools.
 
 \newpage
 \subsubsection{Instruction Override}\label{instruction-override}
@@ -1270,7 +1336,7 @@ Lima et al. & Taxonomy and generation strategies for RAG evaluation datasets. & 
 Alhuzali & RAGIntel for MITRE ATT\&CK-based attack investigation. & Closest cybersecurity RAG precedent; it does not study Prompt Injection in attacker-controlled logs. \\
 \end{longtable}
 
-\subsubsection{Three Foundational Works for This Thesis}
+\subsubsection{Foundational Studies Informing This Thesis}
 \label{three-foundational-works}
 
 The thesis is primarily grounded in the following three works, selected
