@@ -271,22 +271,78 @@ Evaluation of a RAG system should not be limited to the final generated
 answer. Retrieval and generation represent different failure points and
 should be measured independently.
 
-Retrieval evaluation may include:
+\begingroup
+\setlength{\abovedisplayskip}{1.2em plus 0.3em minus 0.2em}
+\setlength{\belowdisplayskip}{1.2em plus 0.3em minus 0.2em}
 
-\begin{itemize}
-\tightlist
-\item
-  Precision@k,
-\item
-  Recall@k,
-\item
-  Mean Reciprocal Rank,
-\item
-  NDCG,
-\item
-  or a simplified evidence-retrieval accuracy suitable for the
-  controlled knowledge base.
-\end{itemize}
+Let $Q$ be the set of evaluation queries, $R_q$ the set of documents
+judged relevant to query $q$, and $T_q(k)$ the top-$k$ retrieved
+documents~\cite{manning2008ir}.
+
+\textbf{Precision@k} is the proportion of the top-$k$ retrieved
+documents that are relevant. It indicates how much irrelevant material
+appears in the retrieved results; higher precision means fewer irrelevant
+documents in the top $k$:
+
+\begin{equation}
+\mathrm{Precision@k}(q) = \frac{|T_q(k) \cap R_q|}{k}.
+\end{equation}
+
+\textbf{Recall@k} is the proportion of all documents relevant to query
+$q$ that appear in its top $k$. It indicates whether retrieval finds the
+available relevant evidence; higher recall means fewer relevant
+documents are missed:
+
+\begin{equation}
+\mathrm{Recall@k}(q) = \frac{|T_q(k) \cap R_q|}{|R_q|}.
+\end{equation}
+
+\textbf{Mean Reciprocal Rank (MRR@k)} measures the position of the first
+relevant document in each query's ranking. A relevant result near the top
+contributes more than one appearing lower down; a query with no relevant
+result in the top $k$ contributes zero~\cite{manning2008ir}. If $r_q$ is
+the rank of the first relevant result:
+
+\begin{equation}
+\begin{gathered}
+\mathrm{RR@k}(q) =
+\begin{cases}
+1/r_q, & r_q \leq k, \\
+0, & \text{if no relevant result occurs in the top } k,
+\end{cases}\\[0.8em]
+\mathrm{MRR@k} = \frac{1}{|Q|}\sum_{q \in Q} \mathrm{RR@k}(q).
+\end{gathered}
+\end{equation}
+
+\textbf{Normalized Discounted Cumulative Gain (NDCG@k)} measures the
+quality of the full ranking when relevance can have multiple grades. It
+rewards highly relevant documents, while discounting documents that
+appear lower in the ranking. For relevance grade $\mathrm{rel}_{q,i}$ at
+rank $i$~\cite{jarvelin2002cumulated}:
+
+\begin{equation}
+\begin{gathered}
+\mathrm{DCG@k}(q) = \sum_{i=1}^{k}
+\frac{2^{\mathrm{rel}_{q,i}} - 1}{\log_2(i+1)}, \\[0.8em]
+\mathrm{NDCG@k}(q) = \frac{\mathrm{DCG@k}(q)}{\mathrm{IDCG@k}(q)}.
+\end{gathered}
+\end{equation}
+where $\mathrm{IDCG@k}(q)$ is the DCG of the ideal ranking for query
+$q$. NDCG ranges from 0 to 1 when the ideal ranking has nonzero gain.
+
+\textbf{Hit@k} is the proportion of queries for which at least one
+expected relevant document appears in the top $k$. For the curated
+knowledge base, it gives a simple indication of whether retrieval found
+any expected evidence, without measuring how many relevant documents
+were found or how highly they ranked:
+
+\begin{equation}
+\mathrm{Hit@k} = \frac{1}{|Q|}\sum_{q \in Q}
+\mathbb{1}\bigl[|T_q(k) \cap R_q| > 0\bigr],
+\end{equation}
+where $\mathbb{1}[\cdot]$ equals 1 when the condition is true and 0
+otherwise.
+\endgroup
 
 Generation evaluation may include:
 
