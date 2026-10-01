@@ -1,5 +1,11 @@
 \chapter{Background and Related Work}\label{background-and-related-work}
 
+This chapter reviews the foundations and prior work relevant to the
+study: Retrieval-Augmented Generation, Prompt Injection, LLMs in
+cybersecurity, web application log analysis, evidence grounding, and
+defenses. It concludes by identifying the research gap addressed by the
+thesis.
+
 \section{Retrieval-Augmented
 Generation}\label{retrieval-augmented-generation}
 
@@ -265,28 +271,205 @@ A representative target schema is:
 
 \subsection{Evaluation of RAG Systems}\label{evaluation-of-rag-systems}
 
-Although a RAG system includes retrieval and generation, this thesis
-evaluates only generation and security outcomes. Retrieval quality is not
-scored because the current dataset and knowledge base do not provide
-query-level gold relevance judgments~\cite{manning2008ir}.
+RAG evaluation can assess both the documents returned by retrieval and
+the answers produced by the generator. Retrieval metrics assess the
+relevance and ranking of retrieved documents. Output metrics assess
+classification, generated-response quality, structured-output validity,
+and security behavior. The following subsections organize candidate
+metrics by the system component and outcome they assess. Chapter 3
+specifies which of these candidates are used in the experiments and why
+others are not reported.
 
-\subsubsection{Generation and Security}
+\subsubsection{Retrieval Metrics}\label{retrieval-metric-candidates}
 
-The generation and security metrics used in this thesis are:
+Retrieval metrics assess whether relevant knowledge-base documents are
+returned and how highly they are ranked. For a query $q$, let
+$\mathrm{Rel}(q)$ be the set of documents judged relevant and let
+$\mathrm{Top}_k(q)$ be the first $k$ documents returned by the retriever.
+Precision@\emph{k} measures the proportion of retrieved top-$k$ documents
+that are relevant; Recall@\emph{k} measures the proportion of all
+relevant documents that appear in the top-$k$ results~\cite{manning2008ir}:
 
-\begin{itemize}
-\tightlist
-\item
-  Classification accuracy,
-\item
-  Attack-type accuracy,
-\item
-  Attack Success Rate (ASR).
-\item
-  Robustness score, derived from ASR.
-\end{itemize}
+\begin{equation}
+\mathrm{Precision@}k(q) =
+\frac{|\mathrm{Rel}(q) \cap \mathrm{Top}_k(q)|}{k},
+\qquad
+\mathrm{Recall@}k(q) =
+\frac{|\mathrm{Rel}(q) \cap \mathrm{Top}_k(q)|}
+{|\mathrm{Rel}(q)|}.
+\end{equation}
 
-Their operational definitions and formulas are provided in Section~3.
+F1@\emph{k} is the harmonic mean of Precision@\emph{k} and Recall@\emph{k}:
+
+\begin{equation}
+\mathrm{F1@}k(q) =
+2 \cdot \frac{\mathrm{Precision@}k(q)\,\mathrm{Recall@}k(q)}
+{\mathrm{Precision@}k(q) + \mathrm{Recall@}k(q)}.
+\end{equation}
+
+Hit Rate@\emph{k} measures the proportion of queries for which at least
+one relevant document appears in the top-$k$ results:
+
+\begin{equation}
+\mathrm{HitRate@}k = \frac{1}{|Q|}
+\sum_{q \in Q} \mathbb{1}
+\left[\mathrm{Rel}(q) \cap \mathrm{Top}_k(q) \ne \varnothing\right].
+\end{equation}
+
+Mean Reciprocal Rank (MRR) emphasizes the rank of the first relevant
+result. If $r_q$ is the rank of the first relevant document for query
+$q$, the reciprocal rank is $1/r_q$, or zero if none is retrieved:
+
+\begin{equation}
+\mathrm{MRR} = \frac{1}{|Q|}
+\sum_{q \in Q} \frac{1}{r_q}.
+\end{equation}
+
+Average Precision (AP) averages Precision@\emph{i} at the ranks where
+relevant documents occur; Mean Average Precision (MAP) averages AP across
+queries:
+
+\begin{equation}
+\mathrm{AP}(q) = \frac{1}{|\mathrm{Rel}(q)|}
+\sum_{i=1}^{n} \mathrm{Precision@}i(q)\,\mathrm{rel}_{q,i},
+\qquad
+\mathrm{MAP} = \frac{1}{|Q|}\sum_{q\in Q}\mathrm{AP}(q),
+\end{equation}
+
+where $\mathrm{rel}_{q,i}=1$ if the document at rank $i$ is relevant and
+zero otherwise. Normalized Discounted Cumulative Gain (nDCG@\emph{k})
+accounts for graded relevance and rewards relevant documents ranked
+higher:
+
+\begin{equation}
+\mathrm{DCG@}k(q) = \sum_{i=1}^{k}
+\frac{2^{\mathrm{rel}_{q,i}}-1}{\log_2(i+1)},
+\qquad
+\mathrm{nDCG@}k(q) =
+\frac{\mathrm{DCG@}k(q)}{\mathrm{IDCG@}k(q)},
+\end{equation}
+
+where IDCG@\emph{k} is the DCG of the ideal ranking for query $q$.
+These metrics require query-level relevance judgments.
+
+\subsubsection{Classification and Structured-Output Metrics}
+
+For a class $c$, precision measures the proportion of predictions for
+$c$ that are correct; recall measures the proportion of actual instances
+of $c$ that are identified; and F1 is their harmonic mean:
+
+\begin{equation}
+\mathrm{Precision}_c = \frac{TP_c}{TP_c + FP_c}, \qquad
+\mathrm{Recall}_c = \frac{TP_c}{TP_c + FN_c}, \qquad
+\mathrm{F1}_c = 2 \cdot
+\frac{\mathrm{Precision}_c \cdot \mathrm{Recall}_c}
+{\mathrm{Precision}_c + \mathrm{Recall}_c}.
+\end{equation}
+
+Macro-F1 is the unweighted mean of class-level F1 scores. A confusion
+matrix shows the counts of correct and incorrect predictions for each
+class. Overall Accuracy measures the proportion of labelled examples
+classified correctly:
+
+\begin{equation}
+\mathrm{Accuracy} =
+\frac{\text{correctly classified examples}}
+{\text{labelled examples evaluated}}.
+\end{equation}
+
+Attack-Type Accuracy applies this measure to malicious records only,
+counting a record as correct when its predicted web-attack subtype
+matches its ground-truth subtype:
+
+\begin{equation}
+\mathrm{Attack\text{-}Type\ Accuracy} =
+\frac{\text{malicious logs with the correct attack subtype}}
+{\text{malicious logs evaluated}}.
+\end{equation}
+
+Generated outputs can also be assessed for structural validity, such as
+whether they conform to a required JSON schema:
+
+\begin{equation}
+\mathrm{Schema\ Validity\ Rate} =
+\frac{\text{outputs that pass schema validation}}
+{\text{outputs evaluated}}.
+\end{equation}
+
+\subsubsection{Prompt Injection and Detector Metrics}
+
+Attack Success Rate (ASR) measures the proportion of adversarial attempts
+that achieve their pre-defined Prompt Injection objective. Robustness is
+its complement: a higher value indicates that fewer attempts succeed.
+
+\begin{equation}
+\mathrm{ASR} =
+\frac{\text{successful adversarial attempts}}
+{\text{total adversarial attempts}},
+\qquad
+\mathrm{Robustness} = 1 - \mathrm{ASR}.
+\end{equation}
+
+Precision, recall, and F1 can assess a binary Prompt Injection detector
+by comparing its flags with clean/adversarial ground truth. These scores
+measure detector performance, not whether the LLM obeyed an injection.
+For paired clean and adversarial records, the change in classification
+accuracy can be summarized by:
+
+\begin{equation}
+\Delta_{\mathrm{accuracy}} =
+\mathrm{Accuracy}_{\mathrm{clean}} -
+\mathrm{Accuracy}_{\mathrm{adversarial}}.
+\end{equation}
+
+A positive value indicates lower accuracy on adversarial records.
+
+\subsubsection{Reference-Based and Evidence Metrics}
+
+Exact Match Rate measures the proportion of generated responses that
+exactly match a reference answer:
+
+\begin{equation}
+\mathrm{Exact\ Match\ Rate} =
+\frac{\text{responses exactly matching the reference}}
+{\text{responses evaluated}}.
+\end{equation}
+
+BLEU compares modified n-gram precision with a brevity penalty, while
+ROUGE measures overlap with reference text, often emphasizing recall.
+Both require reference responses and may penalize valid answers that use
+different wording or structure.
+
+Structural Citation Validity measures whether the cited evidence IDs
+were actually among the retrieved documents:
+
+\begin{equation}
+\mathrm{Citation\ Validity} =
+\frac{\text{cited IDs present in retrieved evidence}}
+{\text{cited IDs checked}}.
+\end{equation}
+
+Semantic Citation Accuracy (SCA) measures whether cited passages support
+their associated claims. Hallucination Rate (HR) measures the proportion
+of reviewed claims judged unsupported by the log, retrieved evidence, or
+ground truth:
+
+\begin{equation}
+\mathrm{SCA} =
+\frac{\substack{\text{citations judged to support}\\
+\text{their associated claims}}}
+{\text{citations semantically assessed}}.
+\end{equation}
+
+\begin{equation}
+\mathrm{HR} =
+\frac{\text{unsupported claims}}
+{\text{generated claims reviewed}}.
+\end{equation}
+
+Semantic citation accuracy and hallucination rate require claim-level
+annotations; structural validity alone does not establish semantic
+support.
 
 \subsection{Advantages and
 Limitations}\label{advantages-and-limitations}
@@ -336,8 +519,6 @@ The research therefore considers RAG both as an enabling mechanism and
 as part of the security problem. Retrieval can improve grounding, but
 trustworthy behavior still depends on strict treatment of
 attacker-controlled content.
-
-\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 \section{Prompt Injection Attacks}\label{prompt-injection-attacks}
 
@@ -691,8 +872,6 @@ The next sections examine how LLMs are currently applied in
 cybersecurity and why web application log analysis represents an
 appropriate controlled domain for this research.
 
-\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
-
 \section{Large Language Models in
 Cybersecurity}\label{large-language-models-in-cybersecurity}
 
@@ -818,10 +997,17 @@ Figure~\ref{fig:proposed-research-interaction}.
 This setting provides a suitable environment for studying both the
 benefits of RAG and the security risks introduced by Prompt Injection.
 
-\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
-
 \section{Web Application Log
 Analysis}\label{web-application-log-analysis}
+
+\subsection{Introduction}\label{web-log-analysis-introduction}
+
+Web application logs are an important source of operational and security
+evidence because they record requests, parameters, headers, and outcomes.
+Since some fields are supplied or influenced by users, a log may combine
+evidence of a web attack with arbitrary text later processed by an LLM.
+This creates two related analytical tasks: identifying the underlying
+web event and treating any embedded instructions as untrusted content.
 
 \subsection{Web Application Logs}\label{web-application-logs}
 
@@ -992,10 +1178,17 @@ The final dataset-generation procedure, transformations, sampling rules,
 and synthetic Prompt Injection construction must be documented in
 Chapter 5 to ensure reproducibility.
 
-\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
-
 \section{Grounding and Evidence
 Retrieval}\label{grounding-and-evidence-retrieval}
+
+\subsection{Introduction}\label{grounding-introduction}
+
+Grounded generation connects an answer to external evidence, while
+faithfulness concerns whether the answer's claims are supported by that
+evidence. Retrieval quality concerns whether useful documents are found,
+and evidence attribution makes the sources behind an answer traceable.
+These concepts are related but distinct: retrieving or citing a document
+does not, by itself, prove that a generated claim is supported.
 
 \subsection{Grounded Generation}\label{grounded-generation}
 
@@ -1038,16 +1231,19 @@ associated claim. The current dataset does not contain claim-level
 evidence annotations, so semantic citation accuracy is not quantitatively
 evaluated in this thesis.
 
-\subsection{Retrieval Quality}
+\subsection{Retrieval Quality}\label{retrieval-quality}
 
 Retrieval quality concerns whether the documents returned by the
-retriever are relevant to the analyzed log. It is important to RAG
-because retrieved evidence supplies context to the generator. However,
-this thesis does not quantitatively evaluate retrieval quality: the
-dataset provides attack-class labels but no query-level judgments of
-relevant knowledge-base documents. Retrieval is therefore part of the
-system design, not an evaluated outcome; the empirical evaluation
-focuses on generated responses and security outcomes.
+retriever are relevant to the analyzed log and appear in useful order.
+Candidate ranking measures include Precision@\emph{k}, Recall@\emph{k},
+F1@\emph{k}, Hit Rate@\emph{k}, MRR, MAP, and nDCG@\emph{k}; their
+definitions and formulas are provided in
+Section~\ref{retrieval-metric-candidates}. Calculating these measures
+requires query-level judgments specifying which knowledge-base documents
+are relevant to each log. The dataset used in this thesis contains
+attack-class labels but no document-level relevance judgments, so
+retrieval quality is part of the system design rather than a measured
+outcome.
 
 \subsection{Hallucination and Unsupported
 Claims}\label{hallucination-and-unsupported-claims}
@@ -1080,9 +1276,17 @@ purpose is to constrain the final output to evidence retrieved from
 trusted knowledge sources and to make unsupported claims easier to
 detect.
 
-\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
-
 \section{Prompt Injection Defenses}\label{prompt-injection-defenses}
+
+\subsection{Introduction}\label{defenses-introduction}
+
+Prompt Injection defenses aim to prevent untrusted text from overriding
+the trusted instructions that govern an LLM application. Because no
+single prompt-level measure guarantees this separation, defenses often
+combine controls such as prompt hardening, instruction/data separation,
+detection, metadata, and evidence constraints. These measures can reduce
+risk, but their effectiveness must be evaluated and they should not be
+treated as a complete solution.
 
 \subsection{Defense Strategy}\label{defense-strategy}
 
@@ -1246,16 +1450,18 @@ The intended design is shown in Figure~\ref{fig:defense-in-depth-flow}.
   \label{fig:defense-in-depth-flow}
 \end{figure}
 
-\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
-
-\subsection{Related Work and Paper Selection}
+\section{Related Work and Paper Selection}
 \label{related-work-paper-selection}
+
+\subsection{Introduction}\label{related-work-introduction}
 
 The literature relevant to this thesis spans three connected topics: the
 RAG architecture, indirect Prompt Injection, and the use and evaluation of
 RAG in cybersecurity. Reviewing these works first makes it possible to
 distinguish the broad literature from the three works that provide the
 thesis's main conceptual and technical foundations.
+
+\subsection{Related Work}\label{related-work-overview}
 
 Lewis et al.~\cite{lewis2020rag} establish the RAG formulation used here:
 retrieving external information and supplying it to a generator at
@@ -1322,7 +1528,7 @@ Lima et al. & Taxonomy and generation strategies for RAG evaluation datasets. & 
 Alhuzali & RAGIntel for MITRE ATT\&CK-based attack investigation. & Closest cybersecurity RAG precedent; it does not study Prompt Injection in attacker-controlled logs. \\
 \end{longtable}
 
-\subsubsection{Foundational Studies Informing This Thesis}
+\subsection{Foundational Studies Informing This Thesis}
 \label{three-foundational-works}
 
 The thesis is primarily grounded in the following three works, selected
@@ -1394,15 +1600,17 @@ Injection.
 
 \section{Research Gap}\label{research-gap}
 
-The literature reviewed in this chapter provides foundations for RAG,
-indirect Prompt Injection, and cybersecurity applications of LLMs. It
-therefore offers a basis for designing a RAG-based security assistant, while
-leaving room to examine these topics in the specific setting addressed by
-this thesis: analysis of web application logs containing
-attacker-controlled instructions. In particular, further empirical study
-is needed to understand how such instructions affect attack classification
-and evidence-supported analysis, and whether lightweight mitigations can
-reduce their influence.
+The literature reviewed in this chapter establishes foundations for RAG,
+indirect Prompt Injection, and cybersecurity applications of LLMs, but
+these topics have largely been examined as separate research strands. Their
+interaction in web application log analysis remains underexplored:
+Prompt Injection embedded in attacker-controlled log fields may affect
+classification of the underlying web attack, and the effectiveness of
+lightweight defenses in reducing this influence without degrading
+classification performance requires empirical evaluation. The gap addressed
+here is therefore not the absence of research on these topics individually,
+but the limited empirical evidence on their combination in this specific
+log-analysis setting.
 
 Accordingly, this thesis addresses the following focused research problem:
 
@@ -1441,5 +1649,3 @@ This objective is operationalized through the following activities:
   assessing whether the prompt, detector, and evidence-control measures
   improve robustness without obscuring the underlying web-attack analysis.
 \end{enumerate}
-
-\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}

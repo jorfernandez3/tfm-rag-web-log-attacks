@@ -1,5 +1,24 @@
 \chapter{Introduction}\label{introduction}
 
+This chapter establishes the rationale for designing, implementing, and
+evaluating a Retrieval-Augmented Generation (RAG)-based LLM assistant for
+cybersecurity analysis of web application logs. The proposed system is
+intended to retrieve curated security knowledge and produce structured,
+evidence-supported analyses of web attacks, including SQL Injection,
+Cross-Site Scripting, Path Traversal, and Brute Force Login. It will
+distinguish the classification of the underlying web attack from the
+detection of Prompt Injection in attacker-controlled log fields, since
+these are separate threats that may coexist in a single record. The study
+will compare four system configurations, from an LLM-only baseline to RAG
+with layered defenses, using controlled clean and adversarial logs. The
+evaluation will measure classification performance and Prompt Injection
+success and robustness to assess whether lightweight safeguards reduce
+manipulation without impairing web-attack analysis. The expected outcome
+is a reproducible prototype and a bounded empirical account of its
+capabilities and limitations, not a claim of complete protection. This
+chapter also sets out the research problem, question, objectives, scope,
+contributions, and organization of the thesis.
+
 \section{Motivation}\label{motivation}
 
 Large Language Models have demonstrated strong capabilities for
@@ -93,13 +112,15 @@ log fields, and how can evidence-controlled retrieval and simple
 mitigation strategies reduce this risk?}
 \end{quote}
 
-\section{General Objective}\label{general-objective}
+\section{Objectives}\label{objectives}
+
+\subsection{General Objective}\label{general-objective}
 
 Design, implement, and evaluate a RAG-based LLM assistant for web
 application log analysis, focusing on robustness against Prompt
 Injection attacks.
 
-\section{Specific Objectives}\label{specific-objectives}
+\subsection{Specific Objectives}\label{specific-objectives}
 
 The specific objectives of this thesis are:
 
@@ -261,5 +282,3 @@ Chapter 7 discusses the results, failure cases, limitations, and threats
 to validity.
 
 Chapter 8 concludes the thesis and proposes directions for future work.
-
-\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
