@@ -281,15 +281,14 @@ The generation and security metrics used in this thesis are:
 \item
   Classification accuracy,
 \item
-  Evidence citation accuracy,
-\item
-  Hallucination rate,
+  Attack-type accuracy,
 \item
   Attack Success Rate (ASR).
+\item
+  Robustness score, derived from ASR.
 \end{itemize}
 
-Their operational definitions and formulas are provided in
-Section~3.
+Their operational definitions and formulas are provided in Section~3.
 
 \subsection{Advantages and
 Limitations}\label{advantages-and-limitations}
@@ -1034,16 +1033,23 @@ structured field:
 }
 \end{lstlisting}
 
-This allows the evaluation pipeline to verify whether the cited evidence
-was actually retrieved and whether it is relevant to the generated
-conclusion.
+This representation allows the system to check whether a cited evidence
+identifier was actually retrieved. That is a structural validation only:
+it does not establish that the cited passage semantically supports the
+associated claim. The current dataset does not contain claim-level
+evidence annotations, so semantic citation accuracy is not quantitatively
+evaluated in this thesis.
 
 \subsection{Retrieval Quality}
 
-Retrieval quality can affect the evidence supplied to the generator, but
-it is not an experimental outcome measured in this thesis. Retrieved
-evidence is considered only when assessing the generated classifications
-and evidence citations; no retrieval-ranking score is reported.
+Retrieval quality concerns whether the documents returned by the
+retriever are relevant to the analyzed log. It is important to RAG
+because retrieved evidence supplies context to the generator. However,
+this thesis does not quantitatively evaluate retrieval quality: the
+dataset provides attack-class labels but no query-level judgments of
+relevant knowledge-base documents. Retrieval is therefore part of the
+system design, not an evaluated outcome; the empirical evaluation
+focuses on generated responses and security outcomes.
 
 \subsection{Hallucination and Unsupported
 Claims}\label{hallucination-and-unsupported-claims}
@@ -1059,8 +1065,11 @@ justified by the analyzed log, the retrieved evidence, or the predefined
 ground truth.
 \end{quote}
 
-The final implementation should specify the exact scoring procedure used
-to classify a response as hallucinated or unsupported.
+The dataset's attack-class labels do not provide claim-level support
+annotations. A quantitative hallucination rate therefore requires a
+separate annotation pass using a predefined rubric to judge each claim
+against the log and retrieved evidence. Unless that annotation is
+conducted, hallucination should not be reported as a quantitative score.
 
 \subsection{Relation to Evidence
 Control}\label{relation-to-evidence-control}

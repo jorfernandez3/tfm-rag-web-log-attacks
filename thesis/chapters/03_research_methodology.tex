@@ -30,10 +30,6 @@ The main dependent variables are:
 \item
   attack-type accuracy,
 \item
-  hallucination rate,
-\item
-  evidence citation accuracy,
-\item
   robustness score.
 \end{itemize}
 
@@ -430,32 +426,14 @@ subtype:
 {\text{total malicious logs evaluated}}.
 \end{equation}
 
-\subsection{Hallucination Rate}\label{hallucination-rate}
+\subsection{Measures Outside the Quantitative Evaluation}
 
-Measures the proportion of evaluated security claims that are
-unsupported by the analyzed log, retrieved evidence, or predefined ground
-truth. The annotation procedure must define what constitutes a claim and
-how support is judged before experimentation.
-
-\begin{equation}
-\mathrm{Hallucination\ Rate} =
-\frac{\text{unsupported security claims}}{\text{assessed security claims}}.
-\end{equation}
-
-\subsection{Evidence Citation Accuracy}
-\label{evidence-attribution-accuracy}
-
-Measures the proportion of generated evidence citations that both
-identify a retrieved item and support the claim to which they are
-attached. Citations are checked against the retrieved evidence and the
-associated generated claim; outputs with no citations are reported
-separately because citation accuracy is undefined when no citation is
-made.
-
-\begin{equation}
-\mathrm{Evidence\ Citation\ Accuracy} =
-\frac{\text{valid supporting citations}}{\text{generated citations}}.
-\end{equation}
+Hallucination rate and semantic evidence citation accuracy are not
+quantitatively reported because the dataset has no claim-level support
+annotations. Measuring either would require an additional annotation
+protocol to judge generated claims against the log and retrieved
+evidence. Checking that a cited identifier was retrieved may validate
+format, but does not establish semantic support.
 
 \section{Reproducibility}\label{reproducibility}
 
