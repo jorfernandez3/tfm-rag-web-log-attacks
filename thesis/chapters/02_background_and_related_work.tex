@@ -278,7 +278,10 @@ classification, generated-response quality, structured-output validity,
 and security behavior. The following subsections organize candidate
 metrics by the system component and outcome they assess. Chapter 3
 specifies which of these candidates are used in the experiments and why
-others are not reported.
+others are not reported. This separation follows the broader principle
+that retrieval and generation should be evaluated as related but distinct
+parts of a RAG system, as emphasized by Lima et al.~\cite{lima2024knowyourrag}
+and Alhuzali~\cite{alhuzali2025ragintel}.
 
 \subsubsection{Retrieval Metrics}\label{retrieval-metric-candidates}
 
@@ -288,12 +291,16 @@ $\mathrm{Rel}(q)$ be the set of documents judged relevant and let
 $\mathrm{Top}_k(q)$ be the first $k$ documents returned by the retriever.
 Precision@\emph{k} measures the proportion of retrieved top-$k$ documents
 that are relevant; Recall@\emph{k} measures the proportion of all
-relevant documents that appear in the top-$k$ results~\cite{manning2008ir}:
+relevant documents that appear in the top-$k$ results. Manning et
+al.~\cite{manning2008ir} present these as standard information-retrieval
+metrics:
 
 \begin{equation}
 \mathrm{Precision@}k(q) =
-\frac{|\mathrm{Rel}(q) \cap \mathrm{Top}_k(q)|}{k},
-\qquad
+\frac{|\mathrm{Rel}(q) \cap \mathrm{Top}_k(q)|}{k}.
+\end{equation}
+
+\begin{equation}
 \mathrm{Recall@}k(q) =
 \frac{|\mathrm{Rel}(q) \cap \mathrm{Top}_k(q)|}
 {|\mathrm{Rel}(q)|}.
@@ -331,8 +338,10 @@ queries:
 
 \begin{equation}
 \mathrm{AP}(q) = \frac{1}{|\mathrm{Rel}(q)|}
-\sum_{i=1}^{n} \mathrm{Precision@}i(q)\,\mathrm{rel}_{q,i},
-\qquad
+\sum_{i=1}^{n} \mathrm{Precision@}i(q)\,\mathrm{rel}_{q,i}.
+\end{equation}
+
+\begin{equation}
 \mathrm{MAP} = \frac{1}{|Q|}\sum_{q\in Q}\mathrm{AP}(q),
 \end{equation}
 
@@ -343,10 +352,12 @@ higher:
 
 \begin{equation}
 \mathrm{DCG@}k(q) = \sum_{i=1}^{k}
-\frac{2^{\mathrm{rel}_{q,i}}-1}{\log_2(i+1)},
-\qquad
+\frac{2^{\mathrm{rel}_{q,i}}-1}{\log_2(i+1)}.
+\end{equation}
+
+\begin{equation}
 \mathrm{nDCG@}k(q) =
-\frac{\mathrm{DCG@}k(q)}{\mathrm{IDCG@}k(q)},
+\frac{\mathrm{DCG@}k(q)}{\mathrm{IDCG@}k(q)}.
 \end{equation}
 
 where IDCG@\emph{k} is the DCG of the ideal ranking for query $q$.
@@ -359,8 +370,14 @@ $c$ that are correct; recall measures the proportion of actual instances
 of $c$ that are identified; and F1 is their harmonic mean:
 
 \begin{equation}
-\mathrm{Precision}_c = \frac{TP_c}{TP_c + FP_c}, \qquad
-\mathrm{Recall}_c = \frac{TP_c}{TP_c + FN_c}, \qquad
+\mathrm{Precision}_c = \frac{TP_c}{TP_c + FP_c}.
+\end{equation}
+
+\begin{equation}
+\mathrm{Recall}_c = \frac{TP_c}{TP_c + FN_c}.
+\end{equation}
+
+\begin{equation}
 \mathrm{F1}_c = 2 \cdot
 \frac{\mathrm{Precision}_c \cdot \mathrm{Recall}_c}
 {\mathrm{Precision}_c + \mathrm{Recall}_c}.
@@ -369,7 +386,9 @@ of $c$ that are identified; and F1 is their harmonic mean:
 Macro-F1 is the unweighted mean of class-level F1 scores. A confusion
 matrix shows the counts of correct and incorrect predictions for each
 class. Overall Accuracy measures the proportion of labelled examples
-classified correctly:
+classified correctly. Manning et al.~\cite{manning2008ir} also describe
+these measures as standard ways of summarizing categorical prediction
+performance:
 
 \begin{equation}
 \mathrm{Accuracy} =
@@ -399,14 +418,21 @@ whether they conform to a required JSON schema:
 \subsubsection{Prompt Injection and Detector Metrics}
 
 Attack Success Rate (ASR) measures the proportion of adversarial attempts
-that achieve their pre-defined Prompt Injection objective. Robustness is
+that achieve their pre-defined Prompt Injection objective. This operational
+definition adapts outcome-based Prompt Injection evaluation to the
+web-log analysis task, building on the goal-hijacking and task-oriented
+attack objectives discussed by Perez and Ribeiro~\cite{perez2022ignore}
+and Yi et al.~\cite{yi2025bipia}.
+Robustness is
 its complement: a higher value indicates that fewer attempts succeed.
 
 \begin{equation}
 \mathrm{ASR} =
 \frac{\text{successful adversarial attempts}}
-{\text{total adversarial attempts}},
-\qquad
+{\text{total adversarial attempts}}.
+\end{equation}
+
+\begin{equation}
 \mathrm{Robustness} = 1 - \mathrm{ASR}.
 \end{equation}
 
@@ -467,6 +493,9 @@ ground truth:
 {\text{generated claims reviewed}}.
 \end{equation}
 
+These evidence-oriented measures follow the broader concern with
+faithfulness and evidence relationships in RAG evaluation discussed by
+Lima et al.~\cite{lima2024knowyourrag} and Alhuzali~\cite{alhuzali2025ragintel}.
 Semantic citation accuracy and hallucination rate require claim-level
 annotations; structural validity alone does not establish semantic
 support.
@@ -576,9 +605,9 @@ attempts to replace or override the intended task.
 Injection}\label{indirect-prompt-injection}
 
 This thesis evaluates only generation and security outcomes. Retrieval
-quality is not scored because ranking metrics require query-level gold
-relevance judgments~\cite{manning2008ir}, which are not available for
-the current dataset and knowledge base.
+quality is not scored because Manning et al.~\cite{manning2008ir} show
+that ranking metrics require query-level gold relevance judgments, which
+are not available for the current dataset and knowledge base.
 
 Examples of potentially untrusted sources include:
 
@@ -1167,12 +1196,21 @@ creates the Prompt Injection risk investigated by this thesis.
 \subsection{Public Dataset Basis}\label{public-dataset-basis}
 
 The accepted proposal identifies \textbf{HTTP CSIC 2010} as the public
-dataset used as a basis for the web-log dataset.
+dataset used as a basis for the web-log dataset. Its role in this thesis
+is methodological rather than historical: it provides a public,
+reproducible source of HTTP-request patterns that can be mapped to the
+fields analyzed by the proposed assistant. This makes it possible to
+construct controlled examples with known web-attack semantics while
+keeping the underlying request stable across clean and adversarial pairs.
 
-The public dataset is not assumed to contain the exact adversarial
-Prompt Injection scenarios required by this thesis. Instead, it provides
-representative benign and malicious HTTP-request patterns that can be
-adapted into a controlled dataset.
+The choice of a 2010 dataset is therefore deliberate but limited. The
+dataset is old and should not be interpreted as a current measurement of
+web-attack prevalence, modern application behavior, or production traffic.
+Its value is that it offers a transparent and reproducible foundation for
+the controlled experiment. The public dataset is not assumed to contain
+the exact adversarial Prompt Injection scenarios required by this thesis;
+those instructions, labels, pair identifiers, and expected outcomes are
+added during the project-specific dataset construction.
 
 The final dataset-generation procedure, transformations, sampling rules,
 and synthetic Prompt Injection construction must be documented in
@@ -1598,7 +1636,7 @@ work. The following section explains how this thesis brings those strands
 together for the focused task of web application log analysis under Prompt
 Injection.
 
-\section{Research Gap}\label{research-gap}
+\section{Research Gap and Study Contribution}\label{research-gap}
 
 The literature reviewed in this chapter establishes foundations for RAG,
 indirect Prompt Injection, and cybersecurity applications of LLMs, but
@@ -1628,9 +1666,17 @@ detector and evidence control (C4). Paired clean and adversarial logs are
 used to assess whether the mitigations reduce Prompt Injection success
 while preserving web-attack classification and evidence-supported output.
 
+The development of the selected system components and the procedure used
+to test them are presented in the subsequent chapters. Chapter 3 defines
+the research methodology, threat model, experimental configurations, and
+metric-selection criteria. Chapter 4 describes the system design, while
+Chapter 5 explains the dataset and implementation. Chapter 6 then applies
+the defined protocol to compare the configurations and report the
+experimental results.
+
 The security framing also follows current guidance for LLM-integrated
-applications, including the OWASP Top 10 for Large Language Model
-Applications~\cite{owasp2025llmtop10}.
+applications, including the OWASP Foundation's OWASP Top 10 for Large
+Language Model Applications~\cite{owasp2025llmtop10}.
 
 This objective is operationalized through the following activities:
 

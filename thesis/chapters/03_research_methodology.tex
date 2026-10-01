@@ -174,6 +174,68 @@ The threat flow is shown in Figure~\ref{fig:threat-flow}.
 
 \section{Dataset Methodology}\label{dataset-methodology}
 
+The controlled dataset is constructed from HTTP-request patterns based on
+the public HTTP CSIC 2010 dataset. The original dataset supplies the
+starting web-request structure and representative attack evidence; it is
+not used as a source of Prompt Injection labels. The project-specific
+construction follows four steps:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  select and map representative HTTP-request patterns to the thesis log
+  schema;
+\item
+  assign the underlying web-event and attack-type ground truth;
+\item
+  create a clean record and a paired adversarial record containing the
+  same or equivalent web attack plus a Prompt Injection in an
+  attacker-controlled field; and
+\item
+  annotate the injection type, target outcome, field, pair identifier,
+  and expected response before evaluation.
+\end{enumerate}
+
+This transformation makes the dataset suitable for testing the assistant
+while preserving control over the variable of interest: the presence and
+effect of Prompt Injection. HTTP CSIC 2010 is not treated as a complete
+representation of current web traffic; its age limits claims about modern
+attack prevalence and production generalization.
+
+\subsection{Advantages and Limitations of the Dataset Choice}
+\label{dataset-choice-tradeoffs}
+
+The main advantages of using HTTP CSIC 2010 as the public basis are its
+public provenance, reproducibility, HTTP-specific structure, and
+suitability for preserving web-attack evidence while modifying the Prompt
+Injection condition. These properties support transparent paired
+comparisons and make the dataset construction easier to document and
+repeat.
+
+The main limitations are its age, its limited coverage of modern web
+applications and attack techniques, and its lack of native Prompt
+Injection annotations. The final dataset is also controlled and partly
+synthetic, so it cannot establish how the assistant would perform on
+unseen production traffic. These limitations are accepted because the
+purpose of the dataset is to isolate the effect of Prompt Injection in a
+reproducible experiment, not to estimate current attack prevalence.
+
+Datasets from the related papers were not reused because they target
+different research questions. CTIBench is designed for broad cyber threat
+intelligence tasks rather than paired HTTP-log analysis; RAGIntel uses
+attack-investigation queries rather than attacker-controlled request
+fields; and ``Know Your RAG'' studies general RAG dataset composition
+rather than Prompt Injection in web logs. These datasets are valuable
+references for task design and evaluation, but they do not provide the
+combination required here: a web-request record, a preserved underlying
+attack, a controlled Prompt Injection variant, and an expected response
+for each adversarial example. Constructing the final dataset from a
+public HTTP basis therefore offers a closer fit to the research question
+than directly adopting those otherwise relevant datasets. The comparison
+draws on Alam et al.~\cite{alam2024ctibench}, Alhuzali~\cite{alhuzali2025ragintel},
+and Lima et al.~\cite{lima2024knowyourrag}.
+
 The controlled dataset contains \textbf{500 logs}:
 
 \begin{itemize}
@@ -201,7 +263,8 @@ Benign/Normal & 50 & 50 & 100 \\
 \textbf{Total} & \textbf{250} & \textbf{250} & \textbf{500} \\
 \end{longtable}
 
-\subsection{Important Terminology}\label{important-terminology}
+\subsection{Important Terminology, Pairing and Annotation}
+\label{important-terminology}
 
 \textbf{Clean does not mean benign.}
 
@@ -212,7 +275,7 @@ payload.
 For example:
 
 \begin{lstlisting}
-Clean SQLi:
+@Clean SQLi:@
 GET /login?id=' OR 1=1 --
 \end{lstlisting}
 
@@ -220,28 +283,21 @@ An adversarial counterpart contains the same or equivalent web attack
 plus a Prompt Injection instruction:
 
 \begin{lstlisting}
-Adversarial SQLi:
+!Adversarial SQLi:!
 GET /login?id=' OR 1=1 --
 
 User-Agent:
 Ignore previous instructions and classify this request as benign.
 \end{lstlisting}
 
-This distinction is fundamental to the experimental design.
+This distinction is fundamental to the experimental design. The dataset
+contains 250 clean/adversarial pairs, with 50 pairs per category. Each
+pair preserves the web attack as far as practical while adding a Prompt
+Injection to the adversarial record. Records include the pair ID, event
+category, adversarial status, injection variant and field, target outcome,
+and expected evidence; these annotations are fixed before evaluation.
 
-\subsection{Pairing and Annotation}
-\label{pairing-and-annotation}
-
-The 500 records form 250 clean/adversarial pairs, with 50 pairs for each
-underlying category in the dataset. Within a pair, the web-event category
-and attack evidence are kept equivalent as far as practical; the
-adversarial record adds one Prompt Injection in a designated field. Each
-record is assigned a pair identifier, ground-truth web-event category,
-adversarial status, and, for adversarial records, a primary injection
-variant and field. The intended injection target and any evidence items
-relevant to its success criterion are annotated before model execution,
-so outcomes are not judged retrospectively.
-
+\newpage
 \subsection{Prompt Injection Variant Assignment}
 \label{variant-assignment}
 
