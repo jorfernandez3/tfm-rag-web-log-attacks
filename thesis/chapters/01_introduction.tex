@@ -42,6 +42,15 @@ the possibility of manipulating the reported classification, lowering
 the reported severity, suppressing evidence, or attempting to extract
 hidden system instructions.
 
+A conventional web attack and a Prompt Injection are distinct threats,
+although both can occur in the same log. For example, a request URL may
+contain a SQL Injection payload while its User-Agent field contains an
+instruction telling the LLM to classify the request as benign. The
+assistant must identify the web attack from the request evidence and treat
+the embedded instruction as untrusted content. Its outputs should report
+these outcomes separately: the web-attack classification (for example,
+SQL Injection) and whether Prompt Injection was detected.
+
 The problem becomes even more relevant when Retrieval-Augmented
 Generation is used. RAG can improve factual grounding by supplying the
 model with cybersecurity knowledge retrieved from an external knowledge
