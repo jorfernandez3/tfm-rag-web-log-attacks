@@ -267,103 +267,29 @@ A representative target schema is:
 
 \subsection{Evaluation of RAG Systems}\label{evaluation-of-rag-systems}
 
-Evaluation of a RAG system should not be limited to the final generated
-answer. Retrieval and generation represent different failure points and
-should be measured independently.
+Although a RAG system includes retrieval and generation, this thesis
+evaluates only generation and security outcomes. Retrieval quality is not
+scored because the current dataset and knowledge base do not provide
+query-level gold relevance judgments~\cite{manning2008ir}.
 
-\begingroup
-\setlength{\abovedisplayskip}{1.2em plus 0.3em minus 0.2em}
-\setlength{\belowdisplayskip}{1.2em plus 0.3em minus 0.2em}
+\subsubsection{Generation and Security}
 
-Let $Q$ be the set of evaluation queries, $R_q$ the set of documents
-judged relevant to query $q$, and $T_q(k)$ the top-$k$ retrieved
-documents~\cite{manning2008ir}.
-
-\textbf{Precision@k} is the proportion of the top-$k$ retrieved
-documents that are relevant. It indicates how much irrelevant material
-appears in the retrieved results; higher precision means fewer irrelevant
-documents in the top $k$:
-
-\begin{equation}
-\mathrm{Precision@k}(q) = \frac{|T_q(k) \cap R_q|}{k}.
-\end{equation}
-
-\textbf{Recall@k} is the proportion of all documents relevant to query
-$q$ that appear in its top $k$. It indicates whether retrieval finds the
-available relevant evidence; higher recall means fewer relevant
-documents are missed:
-
-\begin{equation}
-\mathrm{Recall@k}(q) = \frac{|T_q(k) \cap R_q|}{|R_q|}.
-\end{equation}
-
-\textbf{Mean Reciprocal Rank (MRR@k)} measures the position of the first
-relevant document in each query's ranking. A relevant result near the top
-contributes more than one appearing lower down; a query with no relevant
-result in the top $k$ contributes zero~\cite{manning2008ir}. If $r_q$ is
-the rank of the first relevant result:
-
-\begin{equation}
-\begin{gathered}
-\mathrm{RR@k}(q) =
-\begin{cases}
-1/r_q, & r_q \leq k, \\
-0, & \text{if no relevant result occurs in the top } k,
-\end{cases}\\[0.8em]
-\mathrm{MRR@k} = \frac{1}{|Q|}\sum_{q \in Q} \mathrm{RR@k}(q).
-\end{gathered}
-\end{equation}
-
-\textbf{Normalized Discounted Cumulative Gain (NDCG@k)} measures the
-quality of the full ranking when relevance can have multiple grades. It
-rewards highly relevant documents, while discounting documents that
-appear lower in the ranking. For relevance grade $\mathrm{rel}_{q,i}$ at
-rank $i$~\cite{jarvelin2002cumulated}:
-
-\begin{equation}
-\begin{gathered}
-\mathrm{DCG@k}(q) = \sum_{i=1}^{k}
-\frac{2^{\mathrm{rel}_{q,i}} - 1}{\log_2(i+1)}, \\[0.8em]
-\mathrm{NDCG@k}(q) = \frac{\mathrm{DCG@k}(q)}{\mathrm{IDCG@k}(q)}.
-\end{gathered}
-\end{equation}
-where $\mathrm{IDCG@k}(q)$ is the DCG of the ideal ranking for query
-$q$. NDCG ranges from 0 to 1 when the ideal ranking has nonzero gain.
-
-\textbf{Hit@k} is the proportion of queries for which at least one
-expected relevant document appears in the top $k$. For the curated
-knowledge base, it gives a simple indication of whether retrieval found
-any expected evidence, without measuring how many relevant documents
-were found or how highly they ranked:
-
-\begin{equation}
-\mathrm{Hit@k} = \frac{1}{|Q|}\sum_{q \in Q}
-\mathbb{1}\bigl[|T_q(k) \cap R_q| > 0\bigr],
-\end{equation}
-where $\mathbb{1}[\cdot]$ equals 1 when the condition is true and 0
-otherwise.
-\endgroup
-
-Generation evaluation may include:
+The generation and security metrics used in this thesis are:
 
 \begin{itemize}
 \tightlist
 \item
-  classification correctness,
+  Classification accuracy,
 \item
-  factual consistency,
+  Evidence citation accuracy,
 \item
-  evidence attribution,
+  Hallucination rate,
 \item
-  faithfulness to retrieved evidence,
-\item
-  hallucination behavior,
-\item
-  and robustness under adversarial input.
+  Attack Success Rate (ASR).
 \end{itemize}
 
-The present thesis therefore evaluates both the analytical output and
-the system's use of retrieved evidence.
+Their operational definitions and formulas are provided in
+Section~3.
 
 \subsection{Advantages and
 Limitations}\label{advantages-and-limitations}
@@ -471,10 +397,10 @@ attempts to replace or override the intended task.
 \subsubsection{Indirect Prompt
 Injection}\label{indirect-prompt-injection}
 
-Indirect Prompt Injection occurs when malicious instructions are
-embedded in external or application data that is later processed by the
-LLM. This threat model is consistent with the indirect-injection scenario
-described by Greshake et al.~\cite{greshake2023indirect}.
+This thesis evaluates only generation and security outcomes. Retrieval
+quality is not scored because ranking metrics require query-level gold
+relevance judgments~\cite{manning2008ir}, which are not available for
+the current dataset and knowledge base.
 
 Examples of potentially untrusted sources include:
 
@@ -593,7 +519,6 @@ whether the detector flags the text. The scope is limited to instructions
 embedded in logs, excluding direct user prompts, knowledge-base changes,
 and attacks using tools.
 
-\newpage
 \subsubsection{Instruction Override}\label{instruction-override}
 
 The attacker attempts to replace the trusted task instructions.
@@ -1113,14 +1038,12 @@ This allows the evaluation pipeline to verify whether the cited evidence
 was actually retrieved and whether it is relevant to the generated
 conclusion.
 
-\subsection{Retrieval Quality}\label{retrieval-quality}
+\subsection{Retrieval Quality}
 
-Retrieval quality can be analyzed independently from generation quality.
-
-For a controlled knowledge base, the evaluation can determine whether
-the expected attack-specific evidence appears among the retrieved
-top-\emph{k} chunks. This provides a direct measure of whether an
-incorrect answer was caused by retrieval or by LLM reasoning.
+Retrieval quality can affect the evidence supplied to the generator, but
+it is not an experimental outcome measured in this thesis. Retrieved
+evidence is considered only when assessing the generated classifications
+and evidence citations; no retrieval-ranking score is reported.
 
 \subsection{Hallucination and Unsupported
 Claims}\label{hallucination-and-unsupported-claims}

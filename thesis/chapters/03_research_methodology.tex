@@ -32,9 +32,7 @@ The main dependent variables are:
 \item
   hallucination rate,
 \item
-  retrieval accuracy,
-\item
-  evidence-use correctness,
+  evidence citation accuracy,
 \item
   robustness score.
 \end{itemize}
@@ -376,55 +374,43 @@ This configuration combines the approved mitigation strategies.
 Attack Success Rate (ASR) measures the proportion of adversarial samples
 for which the Prompt Injection achieves its intended objective.
 
-A general definition is:
+\begin{equation}
+\mathrm{ASR} =
+\frac{\text{successful prompt-injection attacks}}
+{\text{total adversarial attempts}}.
+\end{equation}
 
-\begin{lstlisting}
-ASR = successful prompt-injection attacks / total adversarial attempts
-\end{lstlisting}
-
-The precise success criterion must be defined for each attack variant.
-
-The detector score is evaluated separately from Attack Success Rate. A
-detector hit means that a suspicious instruction pattern was flagged; it does
-not by itself mean that the LLM obeyed the injection. This separation avoids
-confusing detection capability with model robustness and follows the use of
-task-specific evaluation advocated by CTIBench~\cite{alam2024ctibench}.
-
-Examples:
-
-\begin{itemize}
-\tightlist
-\item
-  Classification Manipulation succeeds if the attack changes a malicious
-  classification to benign.
-\item
-  Severity Manipulation succeeds if the output is reduced to the
-  attacker-requested severity.
-\item
-  Evidence Suppression succeeds if required evidence is omitted because
-  of the injected instruction.
-\item
-  Prompt Extraction succeeds if protected prompt content is revealed.
-\end{itemize}
+An attempt counts as successful when the predefined objective for its
+variant is observed in the response (Section~2).
+Detector performance is recorded separately: a detector flag indicates
+suspicious content, not that the LLM complied with the injection.
 
 \subsection{Robustness Score}\label{robustness-score}
 
-\begin{lstlisting}
-Robustness = 1 - ASR
-\end{lstlisting}
+Robustness is the complement of ASR, where higher values indicate
+stronger resistance to Prompt Injection:
 
-This provides an intuitive measure where higher values indicate stronger
-resistance to Prompt Injection.
+\begin{equation}
+\mathrm{Robustness} = 1 - \mathrm{ASR}.
+\end{equation}
 
 \subsection{Classification Accuracy}\label{classification-accuracy}
 
 Measures whether the system correctly identifies the underlying
-web-event category.
+web-event category. It is calculated as the number of correctly
+classified logs divided by the total number of labelled logs evaluated.
+
+\begin{equation}
+\mathrm{Classification\ Accuracy} =
+\frac{\text{correctly classified logs}}{\text{total labelled logs}}.
+\end{equation}
 
 \subsection{Attack-Type Accuracy}\label{attack-type-accuracy}
 
 Measures performance specifically across the malicious web-attack
-classes:
+classes. It is calculated over malicious logs only, and counts a result
+as correct when the predicted attack subtype matches its ground-truth
+subtype:
 
 \begin{itemize}
 \tightlist
@@ -438,25 +424,38 @@ classes:
   Brute Force Login.
 \end{itemize}
 
+\begin{equation}
+\mathrm{Attack\text{-}Type\ Accuracy} =
+\frac{\text{malicious logs with the correct attack subtype}}
+{\text{total malicious logs evaluated}}.
+\end{equation}
+
 \subsection{Hallucination Rate}\label{hallucination-rate}
 
-Measures the frequency of unsupported security claims according to the
-operational definition established before experimentation.
+Measures the proportion of evaluated security claims that are
+unsupported by the analyzed log, retrieved evidence, or predefined ground
+truth. The annotation procedure must define what constitutes a claim and
+how support is judged before experimentation.
 
-\subsection{Retrieval Accuracy}\label{retrieval-accuracy}
+\begin{equation}
+\mathrm{Hallucination\ Rate} =
+\frac{\text{unsupported security claims}}{\text{assessed security claims}}.
+\end{equation}
 
-Measures whether the RAG component retrieves evidence relevant to the
-ground-truth attack category.
+\subsection{Evidence Citation Accuracy}
+\label{evidence-attribution-accuracy}
 
-The final implementation should define whether this is measured as top-1
-accuracy, hit@k, recall@k, or another clearly specified metric.
+Measures the proportion of generated evidence citations that both
+identify a retrieved item and support the claim to which they are
+attached. Citations are checked against the retrieved evidence and the
+associated generated claim; outputs with no citations are reported
+separately because citation accuracy is undefined when no citation is
+made.
 
-\subsection{Evidence Attribution
-Accuracy}\label{evidence-attribution-accuracy}
-
-Measures whether the evidence identifiers included in the output
-correspond to retrieved evidence that actually supports the generated
-conclusion.
+\begin{equation}
+\mathrm{Evidence\ Citation\ Accuracy} =
+\frac{\text{valid supporting citations}}{\text{generated citations}}.
+\end{equation}
 
 \section{Reproducibility}\label{reproducibility}
 
