@@ -553,10 +553,10 @@ measures whether the pre-annotated injection objective appears in the
 response, and Robustness expresses the complementary proportion of
 attempts resisted. These metrics are selected because the dataset
 contains the event labels, pairs, and injection targets needed to compute
-them. For C4, detector Precision, Recall, F1, FPR, FNR, and its confusion
-matrix are also evaluated against the clean/adversarial ground truth.
-These measures assess detector performance; ASR separately measures
-whether the LLM follows the injected instruction.
+them. The Prompt Injection detector is evaluated separately against the
+clean/adversarial ground truth using Precision, Recall, F1, FPR, FNR, and
+its confusion matrix. These measures assess detector performance; ASR
+separately measures whether the LLM follows the injected instruction.
 
 Other candidate metrics are excluded from the primary scorecard when
 their required reference data are unavailable or when they measure a
@@ -564,12 +564,17 @@ component rather than the end-to-end outcome. For example, retrieval
 ranking requires judgments of relevant knowledge-base documents for each
 log; Exact Match, BLEU, and ROUGE require a reference answer; and
 semantic citation accuracy and hallucination rate require claim-level
-annotations. Detector scores and schema checks can be recorded as
-diagnostics, but they do not replace the main measures of classification
-and attack success. Chapter 2 defines the candidate metrics; Table~\ref{tab:metric-selection}
-summarizes their selection for this study.
+annotations. Detector metrics are evaluated separately as component-level
+performance for the fixed rule-based detector used by C4. They are not
+attributed to C1--C3, which do not run the detector. The C1--C4 comparison
+uses the same end-to-end classification and Prompt Injection outcome
+metrics for every configuration. Chapter 2 defines the candidates;
+Table~\ref{tab:metric-selection} summarizes their selection and scope.
 
-\begin{longtable}{@{}p{0.30\textwidth}p{0.15\textwidth}p{0.47\textwidth}@{}}
+{\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{longtable}{@{}p{0.29\textwidth}p{0.17\textwidth}p{0.46\textwidth}@{}}
 \caption{Selection of evaluation metrics for this study.}
 \label{tab:metric-selection}\\
 \toprule
@@ -582,35 +587,51 @@ summarizes their selection for this study.
 \endhead
 \bottomrule
 \endlastfoot
-Classification Accuracy and Attack-Type Accuracy & Selected & Ground-truth event labels are available for all records; Attack-Type Accuracy separately measures subtype classification on malicious records. \\
-ASR and Robustness & Selected & Each adversarial record has a pre-annotated injection target; Robustness is derived as the proportion of attempts that do not succeed. \\
-Classification Accuracy Retention & Selected & Paired clean/adversarial records allow the effect of adding Prompt Injection on classification to be measured under comparable event conditions. \\
-Retrieval ranking metrics, including Precision@\emph{k}, Recall@\emph{k}, F1@\emph{k}, Hit Rate@\emph{k}, MRR, MAP, and nDCG@\emph{k} & Not reported & The dataset has no query-level judgments identifying which knowledge-base documents are relevant to each log. \\
-Class-level Precision, Recall, and F1 & Not selected as primary web-classification outcomes & The scorecard prioritizes overall and attack-subtype accuracy; class-level metrics are not required for those comparisons. \\
-Detector confusion matrix & Selected for C4 & Compares detector Match/No Match predictions with clean/adversarial ground truth; web-event classification is evaluated separately. \\
-Prompt Injection detector Precision, Recall, and F1 & Selected for C4 & Measures whether the rule-based detector identifies adversarial records; F1 is also summarized across injection types. \\
-Detector FPR and FNR & Selected for C4 & FPR measures clean records incorrectly flagged, while FNR measures adversarial records missed by the detector. \\
-Exact Match, BLEU, and ROUGE & Not reported & The assistant can produce different but valid structured analyses; the dataset does not provide one reference response per log. \\
-Schema-validity rate & Validation diagnostic & Outputs are checked against the required schema; invalid outputs are recorded, but schema conformance is not a primary research outcome. \\
-Structural citation validity & Validation diagnostic & Retrieved evidence IDs can be checked, but this confirms ID membership only and not whether a citation supports a claim. \\
-Semantic citation accuracy and hallucination rate & Not reported & The dataset lacks claim-level annotations linking generated claims to supporting log evidence and retrieved documents. \\
+Classification Accuracy and Attack-Type Accuracy & Selected & Event labels cover all records; subtype accuracy is computed on malicious records. \\
+ASR and Robustness & Selected & Each adversarial record has an annotated target. Robustness is the proportion of attempts that do not succeed. \\
+Classification Accuracy Retention & Selected & Paired clean and adversarial logs share the same event, enabling a controlled accuracy comparison. \\
+Retrieval ranking metrics, including Precision@\emph{k}, Recall@\emph{k}, F1@\emph{k}, Hit Rate@\emph{k}, MRR, MAP, and nDCG@\emph{k} & Not reported & No query-level labels identify which knowledge-base documents are relevant to each log. \\
+Class-level Precision, Recall, and F1 & Not primary & Overall and attack-subtype accuracy are the selected classification outcomes. \\
+Detector confusion matrix & Standalone component & Compares detector predictions (Match/No Match) with clean/adversarial labels; web-event labels are excluded. \\
+Prompt Injection detector Precision, Recall, and F1 & Standalone component & Evaluated on labelled records; not reported as C1--C3 scores. \\
+Detector FPR and FNR & Standalone component & FPR is the clean-record flag rate; FNR is the missed-adversarial-record rate. \\
+Exact Match, BLEU, and ROUGE & Not reported & No single reference response is provided for each log. \\
+Schema-validity rate & Diagnostic & Invalid outputs are recorded, but schema conformance is not a primary outcome. \\
+Structural citation validity & Diagnostic & Checks that cited evidence IDs were retrieved, not that they support the claims. \\
+Semantic citation accuracy and hallucination rate & Not reported & No claim-level annotations link generated claims to supporting evidence. \\
 \end{longtable}
+}
 
 Retrieval is therefore treated as a system component, not as an
 independently evaluated outcome. Structural checks, such as whether a
 cited evidence identifier was retrieved, do not establish that the
 cited document supports the associated claim.
 
-\subsection{Statistical Reporting}\label{statistical-reporting}
+\subsection{Metric Calculation and Result Presentation}
+\label{metric-calculation-reporting}
 
-Report the numerator, denominator, and percentage for each proportion,
-including the number of adversarial attempts contributing to each
-variant-specific ASR. For paired clean/adversarial comparisons, estimate
-95\% confidence intervals for the accuracy difference by resampling pair
-identifiers rather than individual records. Apply the same resampled
-pairs when comparing configurations on the same examples. These intervals
-describe uncertainty within the controlled dataset and do not, by
-themselves, establish generalization to production traffic.
+Report results separately for each system configuration and evaluation
+condition. Classification Accuracy is the number of correctly classified
+logs divided by the number of evaluated logs; report clean and adversarial
+records separately. Attack-Type Accuracy is calculated over malicious
+logs, and results should also be broken down by web-attack class when
+available.
+
+For each Prompt Injection variant, calculate ASR as the number of
+successful attacks divided by the number of adversarial records containing
+that variant. Robustness is the proportion of those attempts that did not
+succeed. For the standalone detector evaluation, report the TP, FP, FN,
+and TN counts and calculate its metrics against the clean/adversarial
+labels. These detector results describe the component used by C4; they are
+not separate scores for C1--C3.
+
+Present every proportion as a count and percentage (for example,
+\emph{x/n (\%)}), so readers can see how many records contributed to each
+result. For paired clean/adversarial records, report the accuracy change
+in percentage points, with adversarial accuracy compared against clean
+accuracy for the same pairs. The analysis is descriptive of the evaluated
+dataset; it does not claim statistical significance or generalization to
+production traffic.
 
 \section{Reproducibility}\label{reproducibility}
 
