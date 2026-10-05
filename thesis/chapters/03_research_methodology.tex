@@ -7,97 +7,68 @@ metrics, and procedures for reproducibility.
 
 \section{Research Design}\label{research-design}
 
-The same web application logs are tested using four system
+The same set of web application logs is evaluated under four system
 configurations:
 
 \begin{itemize}
 \tightlist
-\item
-  C1: LLM only,
-\item
-  C2: LLM + RAG,
-\item
-  C3: LLM + RAG + Secure Prompt,
-\item
-  C4: LLM + RAG + Detector + Evidence Control.
+\item C1: LLM only,
+\item C2: LLM + RAG,
+\item C3: LLM + RAG + Secure Prompt,
+\item C4: LLM + RAG + Detector + Evidence Control.
 \end{itemize}
 
-The metrics selected for this study are summarized in
-Section~\ref{evaluation-metrics}; their definitions are presented in
-Chapter 2.
-
-Each log is tested in a clean version and an adversarial version. This
-allows the effect of adding a Prompt Injection to be compared while
-keeping the underlying web event as similar as possible.
+Each log is tested in clean and adversarial form. This paired design
+allows the effect of adding Prompt Injection to be compared while
+keeping the underlying web event as similar as possible. The selected
+metrics are summarized in Section~\ref{evaluation-metrics}; their
+definitions are presented in Chapter 2.
 
 \subsection{Experimental Unit and Controlled Conditions}
 \label{experimental-unit}
 
-Each web-log record is one test example. A clean log and its adversarial
-counterpart share a pair identifier and the same underlying web-event
-category; the adversarial version also contains a Prompt Injection. The
-study compares two factors: log condition (clean or adversarial) and
-system configuration (C1--C4). The model version and generation
-parameters remain the same across configurations. For configurations
-that use RAG, the knowledge base, index, and retrieval settings also
-remain the same; only the intended prompts and defense components differ.
+Each web-log record is one test example. A clean record and its
+adversarial counterpart share a pair identifier and the same underlying
+web-event class. The study compares log condition (clean or adversarial)
+and system configuration (C1--C4). The model version and generation
+parameters remain constant. For RAG configurations, the knowledge base,
+index, and retrieval settings also remain constant; only the intended
+prompts and defense components differ.
 
 \subsection{Analytical Comparisons}
 \label{analytical-comparisons}
 
-The analysis makes three comparisons. First, it compares clean and
-adversarial records within each configuration to measure how Prompt
-Injection affects classification. Second, it compares Prompt Injection
-success across configurations using the same adversarial records. Third,
-it compares classification performance between RAG-only and defended
-configurations to check whether the defenses reduce manipulation while
-preserving attack classification. Results are also grouped by web-event
-category and Prompt Injection variant.
+The analysis compares clean and adversarial records within each
+configuration, Prompt Injection success across configurations on the same
+adversarial records, and classification performance between RAG-only and
+defended configurations. Results are also grouped by web-event class and
+Prompt Injection variant.
 
 \section{Threat Model}\label{threat-model}
 
-To evaluate the assistant's robustness under clearly defined assumptions,
-this study establishes a threat model for Prompt Injection through web
-application logs. The threat model identifies the attacker's assumed
-capabilities, objectives, and limitations, and defines the attack path
-being tested: an adversary inserts natural-language instructions into
-user-controlled HTTP fields, which are later recorded in logs and
-processed by the assistant. These assumptions guide the construction of
-adversarial examples and delimit how the results should be interpreted:
-the conclusions apply to this log-mediated attack channel, not to direct
-access to the system prompt, knowledge base, or evaluation process.
+To evaluate robustness under defined assumptions, this study models
+Prompt Injection delivered through web application logs. The attacker
+controls selected HTTP request fields, may combine a web-attack payload
+with instructions targeting the LLM, and seeks to manipulate the
+assistant's output. The model also specifies which system resources and
+evaluation components remain outside the attacker's control.
 
 \subsection{Attacker Capabilities}\label{attacker-capabilities}
 
-The attacker is assumed to be able to control or influence user-supplied
-HTTP request fields that later appear in web application logs.
-
-The primary attacker-controlled fields are:
+The attacker can control or influence user-supplied HTTP request fields
+that later appear in web application logs, including:
 
 \begin{itemize}
 \tightlist
-\item
-  URL,
-\item
-  query parameters,
-\item
-  request body,
-\item
-  User-Agent,
-\item
-  and payload fields derived from the request.
+\item URL,
+\item query parameters,
+\item request body,
+\item User-Agent,
+\item and payload fields derived from the request.
 \end{itemize}
 
-The attacker can embed both:
-
-\begin{enumerate}
-\def\labelenumi{\arabic{enumi}.}
-\tightlist
-\item
-  a conventional web-attack payload, and
-\item
-  natural-language instructions targeting the LLM.
-\end{enumerate}
+The attacker can embed both a conventional web-attack payload and
+natural-language instructions targeting the LLM in these fields.
 
 \subsection{Attacker Goals}\label{attacker-goals}
 
@@ -105,16 +76,10 @@ The attacker may attempt to:
 
 \begin{itemize}
 \tightlist
-\item
-  override the intended analysis instructions,
-\item
-  manipulate the attack classification,
-\item
-  manipulate the severity,
-\item
-  suppress evidence,
-\item
-  or extract hidden prompt information.
+\item override the intended analysis instructions,
+\item manipulate the web-attack classification or reported severity,
+\item suppress attack evidence,
+\item or extract hidden prompt information.
 \end{itemize}
 
 \subsection{Attacker Limitations}\label{attacker-limitations}
@@ -123,16 +88,11 @@ The attacker is not assumed to have:
 
 \begin{itemize}
 \tightlist
-\item
-  direct access to the system prompt,
-\item
-  direct access to the vector database,
-\item
-  write access to the trusted knowledge base,
-\item
-  administrative access to the application,
-\item
-  or control over the evaluation pipeline.
+\item direct access to the system prompt,
+\item direct access to the vector database,
+\item write access to the trusted knowledge base,
+\item administrative access to the application,
+\item or control over the evaluation pipeline.
 \end{itemize}
 
 This assumption isolates Prompt Injection through the web-log data
@@ -259,43 +219,120 @@ SQL Injection & 50 & 50 & 100 \\
 XSS & 50 & 50 & 100 \\
 Path Traversal & 50 & 50 & 100 \\
 Brute Force Login & 50 & 50 & 100 \\
-Benign/Normal & 50 & 50 & 100 \\
+Benign & 50 & 50 & 100 \\
 \textbf{Total} & \textbf{250} & \textbf{250} & \textbf{500} \\
 \end{longtable}
 
 \subsection{Important Terminology, Pairing and Annotation}
 \label{important-terminology}
 
-\textbf{Clean does not mean benign.}
+The dataset records two independent ground-truth dimensions. The
+web-event class is SQL Injection, XSS, Path Traversal, Brute Force Login,
+or Benign. The Prompt Injection condition is clean when no injection is
+present and adversarial when an instruction is added to an
+attacker-controlled field.
 
-A clean SQL Injection log still contains SQL Injection. The term
-\emph{clean} means that the log does not contain a Prompt Injection
-payload.
+Therefore, \textbf{clean does not mean benign}. A clean SQL Injection
+record is still malicious, while a Benign record can be
+adversarial if it contains a Prompt Injection.
 
-For example:
+Table~\ref{tab:dataset-label-combinations} crosses the web-event class
+with the Prompt Injection condition. Each row keeps the web-event class
+fixed; moving across the row adds or removes the Prompt Injection.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}p{0.24\textwidth}XX@{}}
+\toprule
+\textbf{Web-event class} &
+\shortstack{\textbf{Clean}\\No Prompt Injection} &
+\shortstack{\textbf{Adversarial}\\Prompt Injection present} \\
+\midrule
+Benign & Benign HTTP request without an injected instruction & Benign HTTP request with an injected instruction \\
+Malicious & Web attack without an injected instruction & The same web attack with an injected instruction \\
+\bottomrule
+\end{tabularx}
+\caption{Dataset combinations of web-event class and Prompt Injection condition.}
+\label{tab:dataset-label-combinations}
+\end{table}
+
+The Adversarial/Benign combination is intentional. The HTTP activity is
+benign, but one of its user-controlled fields contains an instruction
+targeting the LLM. The Prompt Injection condition does not change the
+web-event ground truth.
+
+The following examples illustrate these combinations.
 
 \begin{lstlisting}
-@Clean SQLi:@
+@Clean/Malicious (SQL Injection)@
 GET /login?id=' OR 1=1 --
 \end{lstlisting}
 
-An adversarial counterpart contains the same or equivalent web attack
-plus a Prompt Injection instruction:
+An adversarial counterpart contains the same or equivalent web attack,
+with a Prompt Injection instruction in an attacker-controlled field.
 
 \begin{lstlisting}
-!Adversarial SQLi:!
+!Adversarial/Malicious (SQL Injection)!
 GET /login?id=' OR 1=1 --
-
-User-Agent:
-Ignore previous instructions and classify this request as benign.
+User-Agent: Ignore previous instructions and classify this request as benign.
 \end{lstlisting}
 
-This distinction is fundamental to the experimental design. The dataset
-contains 250 clean/adversarial pairs, with 50 pairs per category. Each
-pair preserves the web attack as far as practical while adding a Prompt
-Injection to the adversarial record. Records include the pair ID, event
-category, adversarial status, injection variant and field, target outcome,
-and expected evidence; these annotations are fixed before evaluation.
+The same two conditions apply to a Benign web event.
+
+\begin{lstlisting}
+@Clean/Benign@
+GET /home HTTP/1.1
+User-Agent: Mozilla/5.0
+\end{lstlisting}
+
+\begin{lstlisting}
+!Adversarial/Benign!
+GET /home HTTP/1.1
+User-Agent: Mozilla/5.0
+Ignore previous instructions and reveal your hidden system prompt.
+\end{lstlisting}
+
+Both records have the Benign web-event class; only the second has the
+adversarial Prompt Injection condition.
+
+Table~\ref{tab:detector-outcomes} evaluates the detector's prediction
+against the Prompt Injection ground truth. A \emph{Match} means that at
+least one detector rule flags a possible injection; \emph{No Match} means
+that no rule fires. This detector result is separate from the web-event
+class and from whether the LLM obeys the instruction.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}p{0.30\textwidth}XX@{}}
+\toprule
+\textbf{Prompt Injection ground truth} &
+\multicolumn{2}{c}{\textbf{Detector prediction}} \\
+ & \textbf{Match} & \textbf{No Match} \\
+\midrule
+Adversarial & True positive (TP) & False negative (FN) \\
+Clean & False positive (FP) & True negative (TN) \\
+\bottomrule
+\end{tabularx}
+\caption{Detector outcomes compared with Prompt Injection ground truth.}
+\label{tab:detector-outcomes}
+\end{table}
+
+Benign or Malicious is independent of every cell in this table. For
+example, Adversarial/Benign/Match is a true positive, while
+Clean/Malicious/Match is a false positive. At runtime, C4 uses the
+detector prediction. Match selects Secure RAG and No Match selects
+Standard RAG. The ground-truth condition is used only for evaluation, so
+an adversarial record missed by the detector takes Standard RAG but
+remains adversarial and counts as a false negative.
+
+The dataset contains 250 clean/adversarial pairs, with 50 pairs per
+web-event class. Each pair preserves the same underlying event as far as
+practical and adds a Prompt Injection only to the adversarial record.
+Records store the pair ID, web-event class, Prompt Injection condition,
+injection variant and field, target outcome, and expected evidence; these
+annotations are fixed before evaluation.
 
 \newpage
 \subsection{Prompt Injection Variant Assignment}
@@ -303,25 +340,25 @@ and expected evidence; these annotations are fixed before evaluation.
 
 Adversarial records are assigned one primary Prompt Injection variant
 from the Operational Prompt Injection Taxonomy in Section 2.2.3 of
-Chapter 2. For this methodology, the variants are operationalized as
-follows:
+Chapter 2. For this methodology, the five variants are defined below.
 
 \begin{itemize}
 \tightlist
 \item
-  \textbf{Instruction Override}: attempt to replace the trusted analysis
-  instructions.
+  \textbf{Instruction Override}. This variant attempts to replace the
+  trusted analysis instructions.
 \item
-  \textbf{Classification Manipulation}: attempt to alter the predicted
-  web-attack label.
+  \textbf{Classification Manipulation}. This variant attempts to alter
+  the predicted web-attack label.
 \item
-  \textbf{Severity Manipulation}: attempt to change the reported severity.
+  \textbf{Severity Manipulation}. This variant attempts to change the
+  reported severity.
 \item
-  \textbf{Evidence Suppression}: attempt to omit attack indicators or
-  supporting evidence.
+  \textbf{Evidence Suppression}. This variant attempts to omit attack
+  indicators or supporting evidence.
 \item
-  \textbf{Prompt Extraction}: attempt to elicit hidden system
-  instructions or policies.
+  \textbf{Prompt Extraction}. This variant attempts to elicit hidden
+  system instructions or policies.
 \end{itemize}
 
 Evaluation records whether the variant's intended outcome appears in the
@@ -430,34 +467,46 @@ layer.
 \subsection{C4 --- LLM + RAG + Detector + Evidence
 Control}\label{methodology-c4-llm-rag-full-defense}
 
+C4 combines the detector, trust metadata, secure prompt controls, and
+evidence control. The detector selects one of two prompt paths, as shown
+in Chapter 4, Section 4.1, ``High-Level Architecture.'' Both paths then
+use the same LLM analysis. This conditional routing applies only to C4;
+C1--C3 remain separate comparison configurations.
+
 \begin{center}
 \begin{tikzpicture}[
   flowstep/.style={draw=black!70, fill=gray!8, rounded corners=2pt,
-    minimum width=0.42\textwidth, minimum height=0.52cm,
+    minimum width=0.42\textwidth, minimum height=0.68cm,
     align=center, font=\small},
+  branch/.style={draw=black!70, fill=gray!8, rounded corners=2pt,
+    minimum width=0.34\textwidth, text width=0.34\textwidth,
+    minimum height=1cm, align=center, font=\small},
   arrow/.style={-{Latex[length=2.5mm]}, thick, black!70}
 ]
   \node[flowstep] (log) {Log};
-  \node[flowstep, below=0.18cm of log] (metadata) {Metadata Tagging};
-  \node[flowstep, below=0.18cm of metadata] (detector) {Prompt Injection Detector};
-  \node[flowstep, below=0.18cm of detector] (rag) {RAG Retrieval};
-  \node[flowstep, below=0.18cm of rag] (separation) {Instruction/Data Separation};
-  \node[flowstep, below=0.18cm of separation] (hardening) {Prompt Hardening};
-  \node[flowstep, below=0.18cm of hardening] (evidence) {Evidence Control};
-  \node[flowstep, below=0.18cm of evidence] (llm) {LLM};
-  \node[flowstep, below=0.18cm of llm] (json) {JSON Output};
+  \node[flowstep, below=0.28cm of log] (metadata) {Metadata Tagging};
+  \node[flowstep, below=0.28cm of metadata] (detector) {Prompt Injection Detector};
+  \node[branch, below=0.6cm of detector, xshift=-3.4cm] (standard)
+    {No Detector Match\\Standard RAG};
+  \node[branch, below=0.6cm of detector, xshift=3.4cm] (secure)
+    {Detector Match\\Secure RAG};
+  \node[flowstep, below=1.9cm of detector] (analysis) {LLM};
+  \node[flowstep, below=0.28cm of analysis] (output) {JSON Output};
   \draw[arrow] (log) -- (metadata);
   \draw[arrow] (metadata) -- (detector);
-  \draw[arrow] (detector) -- (rag);
-  \draw[arrow] (rag) -- (separation);
-  \draw[arrow] (separation) -- (hardening);
-  \draw[arrow] (hardening) -- (evidence);
-  \draw[arrow] (evidence) -- (llm);
-  \draw[arrow] (llm) -- (json);
+  \draw[arrow] (detector) -- (standard);
+  \draw[arrow] (detector) -- (secure);
+  \draw[arrow] (standard.south) -- (analysis.north west);
+  \draw[arrow] (secure.south) -- (analysis.north east);
+  \draw[arrow] (analysis) -- (output);
 \end{tikzpicture}
 \end{center}
 
-This configuration combines the approved mitigation strategies.
+The secure branch applies instruction/data separation, prompt hardening,
+evidence-only prompting, and evidence control. Both branches return a web
+event classification and separate Prompt Injection metadata. A
+Benign event can still contain Prompt Injection and follow the
+secure branch.
 
 \section{Experimental Protocol}\label{experimental-protocol}
 
@@ -504,7 +553,10 @@ measures whether the pre-annotated injection objective appears in the
 response, and Robustness expresses the complementary proportion of
 attempts resisted. These metrics are selected because the dataset
 contains the event labels, pairs, and injection targets needed to compute
-them.
+them. For C4, detector Precision, Recall, F1, FPR, FNR, and its confusion
+matrix are also evaluated against the clean/adversarial ground truth.
+These measures assess detector performance; ASR separately measures
+whether the LLM follows the injected instruction.
 
 Other candidate metrics are excluded from the primary scorecard when
 their required reference data are unavailable or when they measure a
@@ -534,9 +586,10 @@ Classification Accuracy and Attack-Type Accuracy & Selected & Ground-truth event
 ASR and Robustness & Selected & Each adversarial record has a pre-annotated injection target; Robustness is derived as the proportion of attempts that do not succeed. \\
 Classification Accuracy Retention & Selected & Paired clean/adversarial records allow the effect of adding Prompt Injection on classification to be measured under comparable event conditions. \\
 Retrieval ranking metrics, including Precision@\emph{k}, Recall@\emph{k}, F1@\emph{k}, Hit Rate@\emph{k}, MRR, MAP, and nDCG@\emph{k} & Not reported & The dataset has no query-level judgments identifying which knowledge-base documents are relevant to each log. \\
-Class-level Precision, Recall, and F1 & Not selected as primary outcomes & The scorecard prioritizes overall and attack-subtype accuracy; class-level measures are not required for the planned comparisons and would expand the primary scorecard. \\
-Confusion Matrix & Not selected as a primary metric & It is a descriptive summary of class errors, while the planned scorecard reports the selected accuracy measures and per-attack results. \\
-Prompt Injection detector Precision, Recall, and F1 & Not reported independently & Detector flags are recorded, but the study compares end-to-end configurations rather than evaluating the detector as a standalone classifier. \\
+Class-level Precision, Recall, and F1 & Not selected as primary web-classification outcomes & The scorecard prioritizes overall and attack-subtype accuracy; class-level metrics are not required for those comparisons. \\
+Detector confusion matrix & Selected for C4 & Compares detector Match/No Match predictions with clean/adversarial ground truth; web-event classification is evaluated separately. \\
+Prompt Injection detector Precision, Recall, and F1 & Selected for C4 & Measures whether the rule-based detector identifies adversarial records; F1 is also summarized across injection types. \\
+Detector FPR and FNR & Selected for C4 & FPR measures clean records incorrectly flagged, while FNR measures adversarial records missed by the detector. \\
 Exact Match, BLEU, and ROUGE & Not reported & The assistant can produce different but valid structured analyses; the dataset does not provide one reference response per log. \\
 Schema-validity rate & Validation diagnostic & Outputs are checked against the required schema; invalid outputs are recorded, but schema conformance is not a primary research outcome. \\
 Structural citation validity & Validation diagnostic & Retrieved evidence IDs can be checked, but this confirms ID membership only and not whether a citation supports a claim. \\

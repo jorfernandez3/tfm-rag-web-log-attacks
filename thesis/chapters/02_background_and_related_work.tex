@@ -439,6 +439,19 @@ its complement: a higher value indicates that fewer attempts succeed.
 Precision, recall, and F1 can assess a binary Prompt Injection detector
 by comparing its flags with clean/adversarial ground truth. These scores
 measure detector performance, not whether the LLM obeyed an injection.
+Here, TP is an adversarial record flagged by the detector, FP is a clean
+record flagged by it, FN is an adversarial record missed by it, and TN is
+a clean record not flagged. The False-Positive Rate (FPR) and
+False-Negative Rate (FNR) are:
+
+\begin{equation}
+\mathrm{FPR} = \frac{FP}{FP+TN}.
+\end{equation}
+
+\begin{equation}
+\mathrm{FNR} = \frac{FN}{FN+TP}.
+\end{equation}
+
 For paired clean and adversarial records, the change in classification
 accuracy can be summarized by:
 
@@ -1543,7 +1556,9 @@ taxonomy.
 Table~\ref{tab:related-work-papers} summarizes the contribution and role of
 each work.
 
-\begin{longtable}{@{}p{0.21\textwidth}p{0.28\textwidth}p{0.40\textwidth}@{}}
+{\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.20\textwidth}>{\raggedright\arraybackslash}p{0.28\textwidth}>{\raggedright\arraybackslash}p{0.46\textwidth}@{}}
 \caption{Related work and its role in this thesis.}
 \label{tab:related-work-papers}\\
 \toprule
@@ -1565,6 +1580,7 @@ CyKG-RAG & Knowledge-graph-enhanced RAG for cybersecurity. & Shows a structured-
 Lima et al. & Taxonomy and generation strategies for RAG evaluation datasets. & Informs dataset balance and separate retrieval assessment; its taxonomy is not adopted wholesale. \\
 Alhuzali & RAGIntel for MITRE ATT\&CK-based attack investigation. & Closest cybersecurity RAG precedent; it does not study Prompt Injection in attacker-controlled logs. \\
 \end{longtable}
+}
 
 \subsection{Foundational Studies Informing This Thesis}
 \label{three-foundational-works}
