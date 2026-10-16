@@ -134,18 +134,18 @@ The threat flow is shown in Figure~\ref{fig:threat-flow}.
 
 \section{Dataset Methodology}\label{dataset-methodology}
 
-The controlled dataset is constructed from HTTP-request patterns based on
-the public HTTP CSIC 2010 dataset. The original dataset supplies the
-starting web-request structure and representative attack evidence; it is
-not used as a source of Prompt Injection labels. The project-specific
-construction follows four steps:
+The primary 500-record dataset is synthetic and was created for this
+study. HTTP CSIC 2010~\cite{csic2010dataset} is a public design reference
+for representative HTTP-request patterns, but the current files do not
+preserve row-level CSIC provenance. The project-specific construction
+follows four steps:
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
 \tightlist
 \item
-  select and map representative HTTP-request patterns to the thesis log
-  schema;
+  create HTTP-request records for the five traffic categories in the
+  thesis log schema;
 \item
   assign the underlying web-event and attack-type ground truth;
 \item
@@ -153,33 +153,57 @@ construction follows four steps:
   same or equivalent web attack plus a Prompt Injection in an
   attacker-controlled field; and
 \item
-  annotate the injection type, target outcome, field, pair identifier,
-  and expected response before evaluation.
+  annotate the injection type, field, and pair identifier before
+  evaluation.
 \end{enumerate}
 
-This transformation makes the dataset suitable for testing the assistant
-while preserving control over the variable of interest: the presence and
-effect of Prompt Injection. HTTP CSIC 2010 is not treated as a complete
-representation of current web traffic; its age limits claims about modern
-attack prevalence and production generalization.
+This construction makes it possible to study the Prompt Injection
+condition under a balanced, controlled design. Since the current files
+do not preserve row-level CSIC provenance, the study does not claim that
+each synthetic request is a modified CSIC record. HTTP CSIC 2010 is not
+treated as a complete representation of current web traffic; its age
+limits claims about modern attack prevalence and production
+generalization.
+
+\subsection{Supplementary BIPIA-Based Robustness Test}
+\label{bipia-robustness-test}
+
+In addition to the 500-record dataset, the study will run a separate
+robustness test using selected indirect Prompt Injection examples from
+the public BIPIA benchmark (Benchmarking and Defending Against Indirect
+Prompt Injection Attacks on Large Language Models)~\cite{yi2025bipia}.
+BIPIA includes WebQA, EmailQA, TableQA, summarization, and code tasks.
+The WebQA test split will be considered first because it is closest to
+this study's use of externally supplied content.
+
+These are published benchmark attack cases, not attacks verified as
+having occurred in production. Since BIPIA is not a web-log
+classification dataset, selected compatible attack instructions will be
+adapted to the attacker-controlled fields supported by this study. The
+local web-event ground truth and variant-specific success criteria will
+be recorded for each adapted case. The original 500 records will remain
+unchanged, and BIPIA results will be reported separately rather than
+pooled with the primary dataset. The selected task, split, source
+identifiers, adaptations, and repository revision will be recorded. The
+BIPIA repository is archived, making this version information important
+for reproducibility.
 
 \subsection{Advantages and Limitations of the Dataset Choice}
 \label{dataset-choice-tradeoffs}
 
-The main advantages of using HTTP CSIC 2010 as the public basis are its
-public provenance, reproducibility, HTTP-specific structure, and
-suitability for preserving web-attack evidence while modifying the Prompt
-Injection condition. These properties support transparent paired
-comparisons and make the dataset construction easier to document and
-repeat.
+The main advantages of using HTTP CSIC 2010 as a design reference are its
+public provenance, reproducibility, and HTTP-specific structure. The
+controlled synthetic dataset supports paired comparisons, but its
+individual records are not presented as preserved or transformed CSIC
+records.
 
-The main limitations are its age, its limited coverage of modern web
-applications and attack techniques, and its lack of native Prompt
-Injection annotations. The final dataset is also controlled and partly
-synthetic, so it cannot establish how the assistant would perform on
-unseen production traffic. These limitations are accepted because the
-purpose of the dataset is to isolate the effect of Prompt Injection in a
-reproducible experiment, not to estimate current attack prevalence.
+The main limitations are the reference dataset's age, its limited
+coverage of modern web applications and attack techniques, and the lack
+of row-level provenance in the synthetic dataset. The primary dataset is
+controlled and synthetic, so it cannot establish how the assistant would
+perform on unseen production traffic. The supplementary BIPIA test
+provides a different set of published indirect-injection cases, but it
+does not make the primary dataset representative of production traffic.
 
 Datasets from the related papers were not reused because they target
 different research questions. CTIBench is designed for broad cyber threat
