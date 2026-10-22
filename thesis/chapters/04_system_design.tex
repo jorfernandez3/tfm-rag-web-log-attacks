@@ -148,12 +148,12 @@ is used, its purpose, and its benefits and controls.
 \endfoot
 \bottomrule
 \endlastfoot
-Python + Pydantic & Read CSV/JSONL records; validate log fields and output JSON. & Catch malformed data; keep scoring labels out of the model input. \\
+Python + Pydantic & Read structured log records; validate input fields and output objects. & Catch malformed data; keep scoring labels out of the model input. \\
 LangChain & Connect preprocessing, configured defenses, retrieval, prompts, and model calls. & Reuse a controlled workflow across C1--C4; security decisions remain explicit. \\
 Sentence Transformers* & Embed trusted knowledge chunks and retrieval queries locally. & Avoid a hosted embedding service; pin the model for repeatability. \\
 ChromaDB & Store trusted chunks and retrieve top-\emph{k} evidence for C2--C4. & Persistent, traceable retrieval; exclude labelled evaluation logs. \\
 OpenAI API* & Send the assembled prompt to a hosted LLM and receive its analysis. & No local GPU; fix model/version and account for credentials, data transfer, and cost. \\
-SQLite & Store pair IDs, configurations, predictions, detector outcomes, evidence IDs, and metrics. & Query experiment results locally; CSV/JSONL remains the canonical dataset. \\
+SQLite & Store pair IDs, configurations, predictions, detector outcomes, evidence IDs, and metrics. & Query experiment results locally; the prepared dataset remains canonical. \\
 Pandas / scikit-learn* & Aggregate predictions and calculate evaluation metrics. & Repeatable offline analysis; does not affect runtime predictions. \\
 \end{longtable}
 }
@@ -161,9 +161,9 @@ Pandas / scikit-learn* & Aggregate predictions and calculate evaluation metrics.
 \textsuperscript{*} Planned component; its exact model or package version
 will be fixed before the experiments.
 
-The versioned CSV and JSON Lines files remain the canonical source for
-the 500-record dataset. For an experiment run, records and their
-ground-truth metadata can be loaded into separate SQLite tables, linked
+The versioned structured corpus remains the canonical source for the
+500 records. For an experiment run, records and their ground-truth
+metadata can be loaded into separate SQLite tables, linked
 by \texttt{sample\_id} and \texttt{pair\_id}. Only the input fields are
 passed to the model; labels and attack-success targets are used by the
 evaluation process after inference. This separation, together with the
@@ -175,16 +175,47 @@ generation parameters will be recorded and held constant across
 configurations unless a documented experiment explicitly varies them.
 The stores have distinct purposes: ChromaDB is the source of retrieved
 security guidance, whereas SQLite records what each experiment did and
-produced. Neither is a substitute for the versioned CSV/JSONL source.
+produced. Neither is a substitute for the versioned dataset.
 
 \section{Input Representation}\label{input-representation}
 
 Each dataset row contains both request content and evaluation metadata.
 The distinction follows the independent web-event and Prompt Injection
 dimensions defined in Chapter 3, Section~\ref{important-terminology}.
-Only the request content is sent to the assistant. For example, the
-adversarial member of pair \texttt{PAIR\_0001} from
-\texttt{data/rag\_web\_log\_dataset\_500/dataset\_all.csv} contains:
+Only the request content is sent to the assistant.
+
+The experiments use three separate datasets: the 500-record synthetic
+corpus for the primary paired evaluation, a 200-record external sample
+from HTTP CSIC 2010, and 50 CSIC-derived
+clean/adversarial pairs for a separate robustness test. The CSIC corpus
+contains 61{,}065 requests labelled Normal or Anomalous, but no official
+test partition; the 200 records are a reproducible, study-defined sample
+from the full corpus (seed 42), not an official test set. The derived pairs
+are selected from that sample (seed 43) and are not pooled with either
+other dataset.
+
+All three datasets use the same canonical model-input fields:
+\texttt{http\_method}, \texttt{url}, \texttt{query\_parameters},
+\texttt{request\_body}, \texttt{payload}, \texttt{user\_agent},
+\texttt{status\_code}, and \texttt{src\_ip}. For CSIC, \texttt{Method},
+\texttt{URL}, \texttt{content}, and \texttt{User-Agent} map to the
+corresponding fields; the URL is normalized to its request path and query,
+and query parameters are parsed from it. The source has no standalone
+\texttt{payload}, response status, or source IP, so those fields are null
+rather than inferred. Its \texttt{classification} value is retained only
+as evaluation metadata (0 = Normal, 1 = Anomalous), mapped to the
+assistant's binary labels Benign and Malicious. CSIC supplies no native
+attack subtype or severity label. For anomalous rows, \texttt{attack\_type}
+and \texttt{traffic\_category} contain provisional assignments to the
+four attack categories used in the synthetic corpus. Each has a
+\texttt{candidate\_confidence} and \texttt{candidate\_reason}.
+Lower-confidence assignments are best-fit estimates, not CSIC ground
+truth. Severity remains null.
+Source row numbers, original labels, candidate labels, confidence, and
+other scoring metadata are excluded from model input.
+
+For example, the adversarial member of pair \texttt{PAIR\_0001} from the
+primary 500-record corpus contains:
 
 \begin{lstlisting}
 {
@@ -226,7 +257,7 @@ not infer an injection type or target.
 
 \section{Preprocessing and Parsing}\label{preprocessing-and-parsing}
 
-For each CSV or JSONL row, preprocessing performs four steps:
+For each structured log record, preprocessing performs four steps:
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -243,13 +274,10 @@ For each CSV or JSONL row, preprocessing performs four steps:
   rule matching and retrieval-query construction.
 \end{enumerate}
 
-The parser also converts serialized values to their expected types.
-For example, a CSV may provide \texttt{status\_code} as text and
-\texttt{is\_adversarial} as the string \texttt{"True"}; these are
-validated or converted to an integer and Boolean in the internal record.
-The JSONL representation already carries native JSON types. A failed
-conversion is recorded as an invalid input rather than silently replaced
-with a default.
+The parser also converts values to their expected internal types. For
+example, status codes and Boolean condition flags are validated or
+normalized. A failed conversion is recorded as an invalid input rather
+than silently replaced with a default.
 
 For \texttt{PAIR\_0001}, the clean and adversarial rows share the same
 SQL Injection payload. The adversarial row adds an instruction in
@@ -376,8 +404,8 @@ control at a time to show its effect.
 \section{Knowledge Base}\label{system-knowledge-base}
 
 The planned knowledge base is a small, versioned collection of trusted
-reference documents; the current \texttt{knowledge\_base/} directory is
-empty. It will not contain the labelled log dataset. During ingestion,
+security guidance; it has not yet been populated. It will not contain the
+labelled log dataset. During ingestion,
 each source will be divided into retrievable chunks and tagged with its
 source, topic, section, and version so that the assistant can return
 traceable evidence.

@@ -138,8 +138,8 @@ The threat flow is shown in Figure~\ref{fig:threat-flow}.
 
 The primary 500-record dataset is synthetic and was created for this
 study. HTTP CSIC 2010~\cite{csic2010dataset} is a public design reference
-for representative HTTP-request patterns, but the current files do not
-preserve row-level CSIC provenance. The project-specific construction
+for representative HTTP-request patterns, but the synthetic corpus does
+not preserve row-level CSIC provenance. The project-specific construction
 follows four steps:
 
 \begin{enumerate}
@@ -160,35 +160,64 @@ follows four steps:
 \end{enumerate}
 
 This construction makes it possible to study the Prompt Injection
-condition under a balanced, controlled design. Since the current files
-do not preserve row-level CSIC provenance, the study does not claim that
+condition under a balanced, controlled design. Since the synthetic corpus
+does not preserve row-level CSIC provenance, the study does not claim that
 each synthetic request is a modified CSIC record. HTTP CSIC 2010 is not
 treated as a complete representation of current web traffic; its age
 limits claims about modern attack prevalence and production
 generalization.
 
-\subsection{Supplementary BIPIA-Based Robustness Test}
-\label{bipia-robustness-test}
+\subsection{External Validation with HTTP CSIC 2010}
+\label{csic-external-validation}
 
-In addition to the 500-record dataset, the study will run a separate
-robustness test using selected indirect Prompt Injection examples from
-the public BIPIA benchmark (Benchmarking and Defending Against Indirect
-Prompt Injection Attacks on Large Language Models)~\cite{yi2025bipia}.
-BIPIA includes WebQA, EmailQA, TableQA, summarization, and code tasks.
-The WebQA test split will be considered first because it is closest to
-this study's use of externally supplied content.
+The 500 synthetic records remain the primary paired evaluation for
+Prompt Injection. A separate sample of 200 requests from the HTTP CSIC
+2010 corpus is used for external binary classification validation. It
+contains 61{,}065 requests (36{,}000
+Normal and 25{,}065 Anomalous) and has no official test partition. The
+study-defined sample contains 100 requests per source label, drawn from
+the full corpus with seed 42 after checking for exact duplicate requests.
+Each selected item retains its source-record identifier for provenance.
+This is
+not an official CSIC test split, and no CSIC results are claimed yet
+~\cite{csic2010dataset}.
 
-These are published benchmark attack cases, not attacks verified as
-having occurred in production. Since BIPIA is not a web-log
-classification dataset, selected compatible attack instructions will be
-adapted to the attacker-controlled fields supported by this study. The
-local web-event ground truth and variant-specific success criteria will
-be recorded for each adapted case. The original 500 records will remain
-unchanged, and BIPIA results will be reported separately rather than
-pooled with the primary dataset. The selected task, split, source
-identifiers, adaptations, and repository revision will be recorded. The
-BIPIA repository is archived, making this version information important
-for reproducibility.
+CSIC does not provide the five web-event subtypes used by the synthetic
+dataset. Its labels are therefore evaluated as a binary task: assistant
+output \emph{Benign} maps to Normal and \emph{Malicious} maps to
+Anomalous. An \emph{Unknown} or abstaining output will be counted and
+reported separately rather than forced into either class. Attack-Type
+Accuracy will not be calculated for this sample. C1--C4 classification
+results will be reported separately from the primary dataset.
+
+Each Anomalous record also has a provisional
+\texttt{attack\_type} and matching \texttt{traffic\_category}, selected
+from SQL Injection, XSS, Path Traversal, and Brute Force Login to match
+the primary synthetic taxonomy. Each candidate includes a confidence
+level and reason; lower-confidence entries are broader best-fit
+estimates. These annotations are not CSIC labels and do not enter binary
+classification scoring or subtype-level metrics. In the current sample, the proposed
+counts are 52 SQL Injection, 22 Brute Force Login, 20 Path Traversal,
+and 6 XSS.
+
+\subsubsection{Prompt Injection on CSIC-Derived Pairs}
+\label{csic-prompt-injection-pairs}
+
+A second, separate test uses 50 source requests selected from the
+200-record sample: 25 Normal and 25 Anomalous. Each forms a pair of its
+unchanged request and a CSIC-derived version with one study-authored
+Prompt Injection instruction in the query string. The five study
+variants have 10 pairs each. Instruction Override, Classification
+Manipulation, and Severity Manipulation each include five pairs per
+source label; Evidence Suppression uses 10 Anomalous requests, and Prompt
+Extraction uses 10 Normal requests. Pair annotations retain the source
+record identifier, injection target, and scoring criterion.
+They are supplementary adaptations, not original CSIC records, and are
+not pooled with either other dataset. Since CSIC provides no severity
+ground truth, Severity Manipulation is scored only against its injected
+low-severity target, not as severity-classification accuracy. Pair
+labels, injection targets, and success criteria remain outside model
+input.
 
 \subsection{Advantages and Limitations of the Dataset Choice}
 \label{dataset-choice-tradeoffs}
@@ -199,13 +228,12 @@ controlled synthetic dataset supports paired comparisons, but its
 individual records are not presented as preserved or transformed CSIC
 records.
 
-The main limitations are the reference dataset's age, its limited
-coverage of modern web applications and attack techniques, and the lack
-of row-level provenance in the synthetic dataset. The primary dataset is
-controlled and synthetic, so it cannot establish how the assistant would
-perform on unseen production traffic. The supplementary BIPIA test
-provides a different set of published indirect-injection cases, but it
-does not make the primary dataset representative of production traffic.
+The main limitations are the reference dataset's age, its binary labels,
+and its limited coverage of modern web applications and attack
+techniques. The 500-record primary dataset is controlled and synthetic;
+the CSIC sample is a separate historical benchmark, not production
+traffic. The CSIC-derived Prompt Injection pairs add controlled
+instructions but do not establish how attacks occur in deployed systems.
 
 Datasets from the related papers were not reused because they target
 different research questions. CTIBench is designed for broad cyber threat

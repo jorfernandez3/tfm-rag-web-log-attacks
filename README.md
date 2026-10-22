@@ -156,7 +156,7 @@ The planned dataset contains **500 web application logs**:
 
 > **Important:** Clean does not mean benign. A clean SQL Injection sample is still malicious; it simply does not contain a Prompt Injection payload.
 
-The HTTP CSIC 2010 dataset is used as a basis for representative web-request patterns, complemented by controlled synthetic adversarial variants.
+The 500 synthetic paired logs are the primary Prompt Injection evaluation set. HTTP CSIC 2010 contains 61,065 Normal/Anomalous requests and no official test partition. A reproducible, study-defined sample of 200 requests (100 per class, seed 42) supports external binary evaluation; 50 separate CSIC-derived Prompt Injection pairs (seed 43) support a robustness test. Anomalous records carry provisional best-fit labels in the same four attack categories used by the synthetic corpus, with confidence and reason fields. The current sample proposes 52 SQL Injection, 22 Brute Force Login, 20 Path Traversal, and 6 XSS cases. These are not CSIC subtype ground truth. Severity, response status, and source IP are unavailable and remain null.
 
 ## Expected Output
 
