@@ -15,44 +15,54 @@ use, and current implementation status.
 \section{Dataset Overview}\label{dataset-overview}
 
 The primary experimental dataset contains 500 synthetic web-application
-log records: 250 clean records and 250 adversarial records, organized
-into 250 clean/adversarial pairs. The records can be examined by
-condition and traffic category; these views represent the same 500
-examples and are not additional independent samples.
+log records based on HTTP CSIC 2010 request structures and attack
+patterns: 250 clean records and 250 adversarial records, organized into
+250 clean/adversarial pairs. The records can be examined by condition
+and traffic category; these views represent the same 500 examples and
+are not additional independent samples.
 
-The 500-record dataset is a controlled research artifact created for
-this thesis; it is not the original HTTP CSIC 2010 dataset and is not a
-direct export of or row-by-row relabelling of that dataset. HTTP CSIC
-2010~\cite{csic2010dataset} provides a public reference for representative
-request patterns. The synthetic records do not preserve CSIC source-row
-identifiers and are not claimed to be modifications of specific CSIC
-examples. Their Prompt Injection text, labels, pair identifiers, and
-balanced composition were added for the controlled evaluation.
+The 500 records were constructed synthetically for this thesis using
+HTTP CSIC 2010~\cite{csic2010dataset} as the basis for representative
+request structures and web-attack patterns. They are not the original
+CSIC transactions or a direct row-by-row relabelling of them; no CSIC
+source-row identifiers are retained. The labels, pair identifiers,
+Prompt Injection text, and balanced composition were created for this
+controlled evaluation.
 
-HTTP CSIC 2010 is used only for the external sample and CSIC-derived
-robustness pairs described below. The local copy's download provenance
-was not recorded; its content hash and sampling procedure are retained
-for reproducibility.
+The 500-record synthetic corpus is used as a controlled benchmark, not
+as a statistically representative sample of production web traffic.
+Its 250 clean/adversarial pairs enable comparison of specified injection
+scenarios against their corresponding clean records, while explicit
+labels support consistent evaluation across C1--C4, including correct
+classifications, abstentions, and errors. The corpus therefore supports
+a diagnostic comparison under defined conditions; it does not estimate
+real-world attack prevalence, generalization, or deployment accuracy.
+Its attack patterns and labels reflect design choices and may not
+capture the diversity of operational traffic. Results are consequently
+interpreted as descriptive evidence for these scenarios. Five records
+informed prompt development, and the ModSec-WP pilot informed secure
+prompt v5; neither evaluation is an untouched holdout.
+
+The external evaluation dataset is a study-defined ModSec-WP sample
+containing 800 records arranged in 400 pairs. Each pair combines one
+sampled source request and one study-authored adversarial copy,
+preserving the original web-event label. The reported quantitative
+analysis uses 600 records in 300 pairs after excluding the
+\texttt{bruteforce} stratum and its 100 paired copies. That category
+requires evidence across a time window and is retained only for a
+separate source-context audit. ModSec-WP is analyzed separately from the
+500-record CSIC-based synthetic experimental dataset.
+
+HTTP CSIC 2010 is the design basis for the primary synthetic
+experimental dataset, not the external evaluation dataset. External
+evaluation instead uses the ModSec-WP sample and its paired Prompt
+Injection augmentation, described below.
 
 The dataset is restricted to web application logs. Firewall, EDR, DNS,
 IDS, Suricata, and Windows event logs are outside the experimental scope.
 
-\section{Public Dataset Basis}\label{implementation-public-dataset-basis}
-
-The Information Security Institute's HTTP CSIC 2010 dataset~\cite{csic2010dataset}
-was selected as a public reference for HTTP request patterns relevant to
-web-application security. In this thesis, it informs the design context
-for the request records; the experimental rows themselves are a separate,
-controlled synthetic dataset. This distinction is important: the dataset
-does not inherit Prompt Injection examples or labels from CSIC 2010, and
-the available files do not support tracing a synthetic row to a specific
-original record.
-
-The year 2010 is an acknowledged limitation of the public reference: it
-cannot represent the full diversity of current web applications, modern
-attack prevalence, or contemporary production traffic. The 500-record
-dataset is therefore used for a controlled methodological experiment,
-not as evidence that its distribution reflects present-day attacks.
+\section{Primary Experimental Dataset: CSIC 2010-Based Synthetic}
+\label{implementation-synthetic-dataset}
 
 The dataset design adds five traffic categories, a separate clean or
 adversarial Prompt Injection condition, five labelled injection
@@ -61,7 +71,7 @@ composition is balanced as shown in Table~\ref{tab:dataset-composition}.
 
 \begin{table}[H]
 \centering
-\caption{Composition of the 500-record experimental dataset.}
+\caption{Composition of the 500-record CSIC 2010-based synthetic dataset.}
 \label{tab:dataset-composition}
 \begin{tabular}{@{}lrrr@{}}
 \toprule
@@ -91,47 +101,127 @@ synthetic records do not retain CSIC source-record identifiers, so this
 is a synthetic construction rather than a row-by-row transformation of
 CSIC records.
 
-\subsection{External CSIC 2010 Validation Data}
-\label{dataset-csic-validation}
+\section{External Evaluation Dataset: ModSec-WP}
+\label{implementation-public-dataset-basis}
 
-In addition to the primary synthetic corpus, the external validation
-sample contains 200 HTTP CSIC 2010 requests: 100 Normal and 100
-Anomalous. The corpus has 61{,}065 requests and no official test
-partition, so this is a study-defined stratified sample from the full
-corpus, not a sample from an official test split. It was generated with
-seed 42 after checking for exact duplicate requests. Each record retains
-its source-record identifier. Sampling parameters, a source-content hash,
-label counts, and the field mapping are retained as provenance
-~\cite{csic2010dataset}.
+The external evaluation uses Version 2 of the WordPress Web Attack Audit
+Log Dataset (ModSec-WP), published on Zenodo under CC BY 4.0
+~\cite{modsecwp2026dataset}. Its source contains 108{,}883 records with
+six original labels: \texttt{normal}, \texttt{sqli}, \texttt{xss},
+\texttt{bruteforce}, \texttt{fileinclusion-ldf}, and \texttt{rce}. The
+study selects the first four, which can be mapped to the implemented
+taxonomy. File inclusion is excluded because its source class combines
+LFI, RFI, and path traversal and cannot be mapped unambiguously to the
+project's Path Traversal label; RCE is outside the evaluated taxonomy.
 
-The source \texttt{classification} label supports binary evaluation
-only: 0 (Normal) maps to \emph{Benign}, and 1 (Anomalous) maps to
-\emph{Malicious}. CSIC does not supply native attack-subtype or severity
-labels. Anomalous rows are provisionally
-assigned to one of the four attack categories used by the synthetic
-corpus. Each assignment includes \texttt{candidate\_confidence} and a
-\texttt{candidate\_reason}. Low-confidence best-fit assignments are
-estimates, not CSIC ground truth. In the 200-record sample, the proposed anomalous categories are 52
-SQL Injection, 22 Brute Force Login, 20 Path Traversal, and 6 XSS. They
-are not used to calculate Attack-Type Accuracy. Severity remains unavailable, so the
-sample cannot support severity-classification accuracy.
+The records are HTTP transactions captured from a WordPress research
+testbed instrumented with ModSecurity in detection-only mode. The dataset
+authors describe replaying benign traffic and attacks against publicly
+disclosed plugin vulnerabilities. This provides a traceable source of
+observed request/response transactions, but the testbed design does not
+make the dataset representative of production traffic.
 
-\subsubsection{CSIC-Derived Prompt Injection Pairs}
-\label{dataset-csic-pi-pairs}
+The dataset authors describe their labels as based on scenario
+correlation, regular-expression matching, and expert review. This
+documented provenance supports treating ModSec-WP as a credible,
+traceable external source, but this study did not independently verify
+the annotations. Accordingly, the original labels are treated as the
+dataset's reference labels, not as independently confirmed ground truth.
+HTTP CSIC 2010~\cite{csic2010dataset} is the basis for the primary
+500-record synthetic experimental dataset; it is not used as the
+external evaluation dataset reported here.
 
-For a distinct robustness test, 50 requests from the external sample
-(25 Normal and 25 Anomalous) form 50 clean/adversarial pairs. Each
-adversarial member adds one study-authored Prompt Injection instruction
-to the query string; the unchanged source remains its clean counterpart.
-The five variants have 10 pairs each. Evidence Suppression is applied
-only to Anomalous requests so its target is grounded in request evidence;
-Prompt Extraction is applied to Normal requests. Each pair retains its
-source-record identifier, changed field, variant, target, and scoring
-criterion.
-They are labelled CSIC-derived, not original CSIC traffic, and are not
-added to or pooled with the primary synthetic corpus. Severity Manipulation
-uses an injected Low target; because CSIC has no severity ground truth,
-this measures response to the instruction rather than severity accuracy.
+\begin{table}[H]
+\centering
+\caption{ModSec-WP external evaluation dataset: source labels and study sampling.}
+\label{tab:modsec-source-sample}
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lrrp{6cm}@{}}
+\toprule
+\textbf{Original label} & \textbf{Source count} & \textbf{Sampled} & \textbf{Study treatment} \\
+\midrule
+\texttt{normal} & 12{,}597 & 100 & Benign \\
+\texttt{sqli} & 69{,}631 & 100 & SQL Injection \\
+\texttt{xss} & 8{,}625 & 100 & XSS \\
+\texttt{bruteforce} & 7{,}568 & 100 & Sampled; excluded from metrics (time-window evidence required) \\
+\texttt{fileinclusion-ldf} & 6{,}290 & 0 & Excluded: mixed file-inclusion class \\
+\texttt{rce} & 4{,}172 & 0 & Excluded: outside the taxonomy \\
+\midrule
+\textbf{Total} & \textbf{108{,}883} & \textbf{400} & \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\subsection{External ModSec-WP Evaluation Data}
+\label{dataset-modsec-evaluation}
+
+The external sample contains 400 deduplicated ModSec-WP requests: 100
+from each of the \texttt{normal}, \texttt{sqli}, \texttt{xss}, and
+\texttt{bruteforce} source classes. Before sampling, requests were
+deduplicated by method, URL path, query, request body, and user agent;
+two fingerprints with conflicting labels were excluded. A
+class-stratified random sample was selected with seed 42. The full source file,
+its SHA-256 digest, sampling parameters, label counts, and field mapping
+are recorded in the accompanying data manifest.
+
+The original \texttt{normal} label maps to Benign; \texttt{sqli},
+\texttt{xss}, and \texttt{bruteforce} map to Malicious with the
+corresponding project attack type. The \texttt{bruteforce} to Brute
+Force Login mapping is approximate, particularly because source records
+include XML-RPC authentication activity. The source does not provide
+severity labels, so severity remains null. No attack subtypes are
+inferred for the excluded source classes. Although the
+\texttt{bruteforce} stratum was sampled, it is excluded from all reported
+ModSec-WP model metrics: the label describes repeated activity that
+must be assessed over a time window, not from an isolated request.
+
+A supplementary sequence-evidence annotation matches the sampled
+requests back to the original transactions. It marks repeated
+authentication activity when at least five distinct requests from the
+same source address target the same path within five minutes. This
+evidence tier does not overwrite the source labels or enter model inputs.
+It supports interpreting the category label in source context, but does
+not prove that each authentication attempt failed. It found that 99 of
+the 100 sampled requests met the five-request, five-minute criterion.
+The source requests are retained for this audit; both their clean and
+adversarial records are excluded from quantitative evaluation.
+
+\subsubsection{Paired ModSec-WP Prompt Injection Records}
+\label{dataset-modsec-pi-pairs}
+
+Each of the 400 source requests forms a clean/adversarial pair, producing
+400 pairs and 800 records. Variant assignment is deterministic with
+seed 43. The adversarial member adds one of the five study-authored
+Prompt Injection variants to a URL-encoded \texttt{pi\_note}
+parameter in either the URL or query-parameter field. Instruction
+Override, Classification Manipulation, Severity Manipulation, and
+Prompt Extraction each have 85 pairs; Evidence Suppression has 60 pairs
+and is limited to malicious source records. For each of the three
+malicious source classes, there are 20 pairs per variant. Normal records
+contribute 25 pairs to each of the other four variants. Field placement
+is balanced across URL and query parameters: 42/43 pairs for each
+85-pair variant and 30/30 for Evidence Suppression.
+
+Apart from adding the encoded \texttt{pi\_note} parameter, the source
+request fields and response status are unchanged in the adversarial
+member. The original web-event label is retained for both pair members.
+The instruction, its target, and scoring annotations are not passed as
+separate model fields; only the instruction embedded in the request is
+visible as request content. Pair identifiers are used only for post-hoc
+comparison. Because the source supplies no severity labels, the Severity
+Manipulation target is scored as instruction obedience, not
+severity-classification accuracy. This controlled augmentation tests
+the specified thesis variants and is not an independent sample of
+naturally occurring Prompt Injection.
+
+The original model run covered all 800 records. The reported ModSec-WP
+metrics use the 300 pairs (600 records) from the randomly sampled
+\texttt{normal}, \texttt{sqli}, and \texttt{xss} strata. They exclude the
+100 \texttt{bruteforce} pairs because classifying an isolated request
+without event times cannot establish behavior over the required
+temporal window.
 
 \section{Dataset Schema}\label{dataset-schema}
 
@@ -266,33 +356,6 @@ absence of Prompt Injection. The web-event label and the Prompt Injection
 condition are separate dimensions, including for the Benign control
 category.
 
-\section{Technology Stack}\label{technology-stack}
-
-The planned component roles are detailed in Chapter 4,
-Section~\ref{application-orchestration-and-data-stores}. Table~\ref{tab:implementation-stack}
-distinguishes dependencies currently listed for the project from
-components that remain planned. A package being listed as a dependency
-does not by itself mean that its application code or experiment workflow
-has been completed.
-
-\begin{longtable}[]{@{}p{0.19\textwidth}p{0.34\textwidth}p{0.37\textwidth}@{}}
-\caption{Technology status at the time of writing.}
-\label{tab:implementation-stack}\\
-\toprule
-Technology & Intended role & Current status \\
-\midrule
-\endhead
-\bottomrule
-\endlastfoot
-Python + Pydantic & Load records; validate input and output schemas & Application modules pending. \\
-LangChain & Orchestrate C1--C4 processing & Experiment pipelines pending. \\
-ChromaDB & Store and retrieve trusted knowledge chunks & Knowledge corpus and index pending. \\
-OpenAI API & Hosted LLM inference & Model choice and experiment configuration pending. \\
-Sentence Transformers & Local document/query embeddings & Planned component; integration pending. \\
-SQLite & Persist experiment metadata and results & Experiment persistence pending. \\
-Pandas / scikit-learn & Aggregate predictions and compute metrics & Analytical workflow pending. \\
-\end{longtable}
-
 \section{Functional Organization}
 \label{functional-organization}
 
@@ -300,8 +363,10 @@ The planned implementation separates four responsibilities: request
 validation and preprocessing, trusted-knowledge retrieval, controlled
 execution of configurations C1--C4, and evaluation of responses. This
 separation keeps scoring labels out of model input and prevents labelled
-evaluation examples from becoming retrieval evidence. Application and
-experiment workflows remain under development.
+evaluation examples from becoming retrieval evidence. The full-dataset
+C1--C4 evaluation reported in Chapter~\ref{experimental-evaluation} has
+been executed; this does not imply that a production application has
+been deployed.
 
 \section{Implementation Details}\label{implementation-details}
 
@@ -332,12 +397,40 @@ The planned stages are:
   Section~\ref{empirical-validation-of-detector}.
 \end{enumerate}
 
-The final experiment record must specify the LLM and embedding model
-identifiers, prompt and knowledge-base versions, chunking and
-top-\emph{k} settings, detector rules, generation parameters, validation
-behavior, and any retry policy. These values are not yet fixed, so no
-model, retrieval, or end-to-end performance results are reported in this
-chapter.
+For the completed full-dataset evaluation, the recorded setup used the
+\texttt{gpt-4o-mini} alias (provider-returned model
+\texttt{gpt-4o-mini-2024-07-18}), the
+\texttt{all-MiniLM-L6-v2} embedding model with Chroma ONNX, knowledge
+base version \texttt{2026-11-17-r3}, retrieval top-\emph{k} of 3,
+temperature 0.1, and structured output. The baseline comparison used
+secure-prompt version \texttt{attempt-semantics-v2} with
+\texttt{independent-examples-v1} in C3. The improved C4 run used
+\texttt{attempt-semantics-v4}, \texttt{independent-examples-v2}, URL
+decoding, and removal of detected instructions before retrieval and
+generation on its 240 secure-route records. The results are reported in
+Chapter~\ref{experimental-evaluation}. This describes that evaluation
+run and should not be read as a claim that every planned application
+component has been completed or deployed.
+
+The separate ModSec-WP model run evaluated C1--C4 once on all 800 paired
+records, producing 3{,}200 responses. The reported quantitative
+evaluation excludes the 200 \texttt{bruteforce} records and uses the
+remaining 600 records (300 pairs). It used the configured
+\texttt{gpt-4o-mini} model (provider-returned
+\texttt{gpt-4o-mini-2024-07-18}), temperature 0.1, structured output,
+retrieval top-\emph{k} of 3, the \texttt{all-MiniLM-L6-v2} Chroma ONNX
+embedding model, and knowledge-base version \texttt{2026-11-17-r3}. C3
+and C4 used
+secure-prompt version \texttt{attempt-semantics-v5} and
+\texttt{independent-examples-v2}; C4 additionally used detector-based
+routing and sanitization. The run manifest records the prompt, dataset,
+knowledge-base, and runner hashes. Because the source sample informed
+prompt v5, these results are not an independent holdout estimate.
+
+The secure-prompt versions referenced above are documented in
+Appendix~\ref{appendix-secure-prompt-versions}. The appendix summarizes
+the recorded content of versions v2 and v4 and reproduces the available
+version-v5 prompt text.
 
 \section{Ethical and Security
 Considerations}\label{ethical-and-security-considerations}

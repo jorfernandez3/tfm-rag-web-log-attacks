@@ -7,9 +7,11 @@ review_dir="$thesis_dir/review"
 cd "$thesis_dir"
 
 mkdir -p "$review_dir"
-rm -f "$review_dir"/chapter_0{1,2,3,4,5}.{aux,bbl,bcf,blg,fls,log,out,pdf,run.xml,toc,lof,lot,synctex.gz}
 
-for chapter in 01 02 03 04 05; do
+chapters=(01 02 03 04 05 06 07 08)
+
+for chapter in "${chapters[@]}"; do
+  rm -f "$review_dir/chapter_$chapter".{aux,bbl,bcf,blg,fls,log,out,pdf,run.xml,toc,lof,lot,synctex.gz}
   pdflatex \
     -interaction=nonstopmode \
     -halt-on-error \
@@ -31,7 +33,9 @@ for chapter in 01 02 03 04 05; do
     "$review_dir/chapter_$chapter.tex"
 done
 
-rm -f "$review_dir"/chapter_0{1,2,3,4,5}.{aux,bbl,bcf,blg,fls,log,out,run.xml,toc,lof,lot,synctex.gz}
+for chapter in "${chapters[@]}"; do
+  rm -f "$review_dir/chapter_$chapter".{aux,bbl,bcf,blg,fls,log,out,run.xml,toc,lof,lot,synctex.gz}
+done
 
 printf 'Review PDFs created in %s\n' "$review_dir"
-ls -lh "$review_dir"/chapter_0{1,2,3,4,5}.pdf
+ls -lh "$review_dir"/chapter_0{1,2,3,4,5,6,7,8}.pdf

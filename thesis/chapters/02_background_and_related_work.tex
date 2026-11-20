@@ -1206,24 +1206,26 @@ Automated web-log analysis presents several challenges:
 LLMs can help interpret this heterogeneous content, but their use also
 creates the Prompt Injection risk investigated by this thesis.
 
-\subsection{Public Dataset Basis}\label{public-dataset-basis}
+\subsection{Dataset Bases and Roles}\label{public-dataset-basis}
 
-The accepted proposal identifies \textbf{HTTP CSIC 2010} as the public
-dataset used as a basis for the web-log dataset. Its role in this thesis
-is methodological rather than historical: it provides a public,
-reproducible source of HTTP-request patterns that can be mapped to the
-fields analyzed by the proposed assistant. This makes it possible to
-construct controlled examples with known web-attack semantics while
-keeping the underlying request stable across clean and adversarial pairs.
+The primary experimental dataset comprises 500 examples constructed
+synthetically using \textbf{HTTP CSIC 2010}~\cite{csic2010dataset} as the
+basis for representative request structures and web-attack patterns.
+These study-created examples are distinct from the original CSIC
+transactions. The separate external evaluation uses a study-defined
+sample from the public ModSec-WP dataset~\cite{modsecwp2026dataset};
+CSIC 2010 is not the external evaluation dataset in the results reported
+by this thesis.
 
-The choice of a 2010 dataset is therefore deliberate but limited. The
-dataset is old and should not be interpreted as a current measurement of
-web-attack prevalence, modern application behavior, or production traffic.
-Its value is that it offers a transparent and reproducible foundation for
-the controlled experiment. The public dataset is not assumed to contain
-the exact adversarial Prompt Injection scenarios required by this thesis;
-those instructions, labels, pair identifiers, and expected outcomes are
-added during the project-specific dataset construction.
+The age of CSIC 2010 limits what it can say about current web-attack
+prevalence, modern application behavior, or production traffic. The
+external ModSec-WP sample provides captured transactions from a
+controlled WordPress research testbed, with its published source labels
+preserved but not independently verified by this study. Neither source
+is treated as a representative measurement of production traffic.
+Neither dataset provides the Prompt Injection scenarios required by
+this thesis; the instructions, pair identifiers, targets, and expected
+outcomes are added during project-specific construction.
 
 The final dataset-generation procedure, transformations, sampling rules,
 and synthetic Prompt Injection construction must be documented in

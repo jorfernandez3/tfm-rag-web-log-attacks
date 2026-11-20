@@ -184,35 +184,49 @@ The distinction follows the independent web-event and Prompt Injection
 dimensions defined in Chapter 3, Section~\ref{important-terminology}.
 Only the request content is sent to the assistant.
 
-The experiments use three separate datasets: the 500-record synthetic
-corpus for the primary paired evaluation, a 200-record external sample
-from HTTP CSIC 2010, and 50 CSIC-derived
-clean/adversarial pairs for a separate robustness test. The CSIC corpus
-contains 61{,}065 requests labelled Normal or Anomalous, but no official
-test partition; the 200 records are a reproducible, study-defined sample
-from the full corpus (seed 42), not an official test set. The derived pairs
-are selected from that sample (seed 43) and are not pooled with either
-other dataset.
+The experiments use two distinct datasets: the 500-record synthetic
+experimental dataset based on HTTP CSIC 2010~\cite{csic2010dataset}
+request structures and attack patterns for the primary paired
+evaluation, and the ModSec-WP
+external evaluation dataset, expanded into 400 clean/adversarial pairs
+(800 records) for external classification and Prompt Injection
+analysis. The ModSec-WP sample contains 100 requests randomly selected
+within each of four compatible original source labels using seed 42.
+The reported external metrics exclude the 100 \texttt{bruteforce}
+requests and their paired copies because the category requires a
+sequence-level time window; they use the remaining 300 pairs (600
+records). The paired augmentation adds one of the study's five Prompt
+Injection variants to each selected request; it is not pooled with the
+primary synthetic corpus.
 
-All three datasets use the same canonical model-input fields:
-\texttt{http\_method}, \texttt{url}, \texttt{query\_parameters},
-\texttt{request\_body}, \texttt{payload}, \texttt{user\_agent},
-\texttt{status\_code}, and \texttt{src\_ip}. For CSIC, \texttt{Method},
-\texttt{URL}, \texttt{content}, and \texttt{User-Agent} map to the
-corresponding fields; the URL is normalized to its request path and query,
-and query parameters are parsed from it. The source has no standalone
-\texttt{payload}, response status, or source IP, so those fields are null
-rather than inferred. Its \texttt{classification} value is retained only
-as evaluation metadata (0 = Normal, 1 = Anomalous), mapped to the
-assistant's binary labels Benign and Malicious. CSIC supplies no native
-attack subtype or severity label. For anomalous rows, \texttt{attack\_type}
-and \texttt{traffic\_category} contain provisional assignments to the
-four attack categories used in the synthetic corpus. Each has a
-\texttt{candidate\_confidence} and \texttt{candidate\_reason}.
-Lower-confidence assignments are best-fit estimates, not CSIC ground
-truth. Severity remains null.
-Source row numbers, original labels, candidate labels, confidence, and
-other scoring metadata are excluded from model input.
+Both datasets use the same canonical model-input fields:
+\begin{itemize}
+\item \texttt{http\_method}, \texttt{url}, \texttt{query\_parameters}, and
+\texttt{request\_body}.
+\item \texttt{payload}, \texttt{user\_agent}, \texttt{status\_code}, and
+\texttt{src\_ip}.
+\end{itemize}
+
+For ModSec-WP, the source
+method, URL, query, request body, user agent, and response status are
+mapped to their corresponding fields; the URL is normalized into path
+and query components. The source has no standalone \texttt{payload} or
+source IP, so those fields are empty or null rather than inferred.
+Original source labels are mapped to the project labels only as
+evaluation metadata: \texttt{normal} to Benign, and \texttt{sqli},
+\texttt{xss}, and \texttt{bruteforce} to Malicious with the corresponding
+attack subtype. The \texttt{bruteforce} to Brute Force Login mapping is
+approximate. The source provides no severity labels, so severity remains
+null.
+
+For the paired external set, the encoded Prompt Injection instruction is
+present in the adversarial request's URL or query-parameter field.
+Source labels, pair identifiers, injection type and text, injected
+targets, and scoring metadata are excluded from model input. The source
+response body, ModSecurity rule metadata, remote address, request host,
+transaction identifier, and event time are also excluded. The classifier
+therefore receives the request content, not ground-truth or evaluation
+annotations.
 
 For example, the adversarial member of pair \texttt{PAIR\_0001} from the
 primary 500-record corpus contains:
@@ -309,7 +323,7 @@ evaluation_metadata = {
 \end{lstlisting}
 
 Only \texttt{model\_input} is serialized into the prompt. The evaluator
-uses \texttt{evaluation\_metadata} after generation to score
+uses the separate evaluation metadata after generation to score
 classification and attack success.
 
 \section{Prompt Injection Detector}\label{prompt-injection-detector}
@@ -345,15 +359,20 @@ are:
 \item
   Inspect only fields marked as attacker-controlled.
 \item
-  Normalize a copy for case-insensitive matching; preserve the original
-  field for analysis and reporting.
+  Decode URL encoding repeatedly on a copy and perform case-insensitive
+  matching; preserve the original field in the audit record.
 \item
   Record matched rule names, injection types, and fields as metadata.
+\item
+  If a rule matches, remove the affected instruction parameter or
+  redact the affected fragment before retrieval and generation, while
+  preserving the underlying HTTP event fields.
 \end{enumerate}
 
 For example, the instruction in \texttt{PAIR\_0001}'s
-\texttt{query\_parameters} is matched on a normalized copy; the raw
-request remains unchanged. A field stays untrusted even when no rule
+\texttt{query\_parameters} is matched on a decoded copy. The raw request
+remains available for audit, but the matched note is not sent to the
+retriever or model. A field stays untrusted even when no rule
 matches it.
 
 \subsection{Trust Metadata and Injection Detection}
@@ -373,16 +392,18 @@ without presenting a heuristic score as a calibrated probability.
 \subsection{Detection-Informed Processing Branches}
 \label{detection-informed-branches}
 
-Only C4 branches on the detector: a match selects the secure prompt and
-evidence controls; no match selects standard RAG. Both paths use the same
-LLM and output schema. This signal is independent of web-event class: an
+Only C4 branches on the detector: a match selects sanitized retrieval,
+the secure prompt, and evidence controls; no match selects standard RAG.
+Both paths use the same LLM and output schema. This signal is independent of web-event class: an
 adversarial Benign record remains Benign, and no match does not prove that
 a record is benign or injection-free.
 
 For example, if the detector flags \texttt{PAIR\_0001}, C4 uses the secure
 path because its query-parameter field contains a candidate instruction.
-The expected web-event class remains Malicious/SQL Injection. A false
-negative would route the same record through standard RAG, but the
+The expected web-event class remains Malicious/SQL Injection. The
+instruction is removed, while the UNION SELECT payload remains visible
+to retrieval and the model. A false negative would route the same record
+through standard RAG, but the
 evaluator would still score it as adversarial. Ground truth never selects
 the runtime branch.
 
@@ -451,7 +472,9 @@ embedding model used to index the knowledge base, and searches ChromaDB
 for the top-\emph{k} chunks by vector similarity. Source metadata and
 evidence IDs are returned with each chunk. Pair IDs and ground-truth
 labels are never part of the query, and instructions inside a log are
-not treated as commands to the retriever. For example:
+not treated as commands to the retriever. On the C4 secure path,
+detected instruction parameters are removed before the embedding query
+is constructed. For example:
 
 \begin{lstlisting}
 Query: HTTP POST body containing a SQL UNION SELECT expression

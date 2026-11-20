@@ -150,9 +150,9 @@ The specific objectives of this thesis are:
 \item
   Compare defended and undefended system configurations under the same
   primary dataset and evaluation procedure, then assess classification
-  on a separate HTTP CSIC 2010 sample.
+  on a separate, study-defined ModSec-WP sample.
 \item
-  Test Prompt Injection robustness on paired CSIC-derived requests using
+  Test Prompt Injection robustness on paired ModSec-WP requests using
   the study's own injection variants.
 \item
   Measure attack success, classification performance, retrieval quality,
@@ -166,6 +166,21 @@ The specific objectives of this thesis are:
 
 This thesis is intentionally restricted to \textbf{web application
 logs}.
+
+The work is framed as a \textbf{proof of concept} for LLM-assisted
+analysis of web application logs, rather than as a production-ready
+system or a claim of broad generalization. The primary experiment uses
+the 500-record synthetic experimental dataset, constructed using HTTP
+CSIC 2010~\cite{csic2010dataset} as its basis for representative request
+structures and attack patterns. A separate external evaluation uses a
+study-defined, randomly sampled cohort from the public ModSec-WP dataset
+~\cite{modsecwp2026dataset} for classification and paired Prompt
+Injection analysis. It uses a reproducible class-stratified sample and
+excludes the source \texttt{bruteforce} category from quantitative
+evaluation because its interpretation requires a time window of repeated
+requests. ModSec-WP source labels are preserved but were not independently
+revalidated in this study. Neither dataset establishes performance on
+current production traffic.
 
 The system analyzes web/application request information such as:
 
