@@ -1,0 +1,931 @@
+\chapter{Experimental Evaluation}\label{experimental-evaluation}
+
+This chapter reports the completed evaluation of configurations C1--C4
+on the 500-record synthetic experimental dataset based on HTTP CSIC
+2010. It reports web-event
+classification, abstentions, attack-subtype matches on malicious
+records, the C4 detector counts, and citation-ID membership checks.
+The chapter also reports post-hoc Prompt Injection compliance, a
+stratified semantic-quality review, and classification and Prompt
+Injection results on the separate ModSec-WP external evaluation
+dataset. These additions distinguish
+classification performance from instruction obedience, citation
+integrity from semantic support, and detector performance from
+end-to-end defense.
+
+\section{Experimental Setup}\label{experimental-setup}
+
+The initial full-dataset batch ran all four configurations once on all 500
+records, yielding 2{,}000 responses. The comparison tables use C1--C3 from
+that batch and replace its initial C4 results with a later C4-only
+execution on the same records. The reported C4 uses secure-prompt version
+\texttt{attempt-semantics-v4} and few-shot version
+\texttt{independent-examples-v2}; C3 uses prompt version
+\texttt{attempt-semantics-v2} and few-shot version
+\texttt{independent-examples-v1}. The C4 revision also changes detector
+decoding and sanitization. Therefore, the C3--C4 difference does not
+isolate the effect of sanitization or any single defense component.
+The recorded content of secure-prompt versions v2 and v4 is summarized
+in Appendix~\ref{appendix-secure-prompt-versions}.
+
+The provider returned
+\texttt{gpt-4o-mini-2024-07-18} for the \texttt{gpt-4o-mini} model
+alias. Generation used temperature 0.1, structured output, retrieval
+top-\emph{k} of 3, and a local knowledge base containing 57 documents.
+All 2{,}000 responses in the initial batch had valid structured JSON
+directly; none required recovery and none was invalid. C1 and C2 used no
+few-shot examples. C3 used examples for all 500 records. The reported C4
+used examples only on records routed to its secure path by the detector.
+
+The corpus has 250 clean and 250 adversarial records arranged in 250
+pairs. Its class distribution is 400 malicious and 100 benign records.
+Five records from this corpus had already been used to adjust the
+prompt; consequently, it is not an independent test of those prompt
+choices. C4 was run in multiple development iterations, while only one
+reported version of each configuration is shown. These results do not
+estimate run-to-run variability.
+
+A separate external evaluation batch used the 800-record paired
+ModSec-WP dataset and evaluated all four configurations once, yielding
+3{,}200 responses. C3 and C4 used secure-prompt version
+\texttt{attempt-\allowbreak{}semantics-\allowbreak{}v5} and few-shot
+version \texttt{independent-\allowbreak{}examples-\allowbreak{}v2}; C4 additionally
+applied detector-based routing and sanitization. Because the ModSec-WP
+sample informed the contextual indicators in prompt v5, this batch is
+development evidence rather than an independent holdout evaluation. The
+v5 prompt is reproduced in Appendix~\ref{appendix-secure-prompt-v5}.
+The reported ModSec-WP metrics below exclude the 200 records in the
+\texttt{bruteforce} stratum and use the remaining 600 records (300
+pairs, or 2{,}400 responses across C1--C4). This category requires
+repeated-request evidence over a time window and cannot be established
+from the individual request fields supplied to the model.
+
+\subsection{Metric conventions}\label{evaluation-metric-conventions}
+
+Binary classification means assigning each record to one of two
+web-event classes: benign/normal or malicious. It does not mean
+assigning an attack subtype. Classification accuracy is the number of
+records with the correct benign/malicious label divided by all records
+in the stated group. Unknown predictions are abstentions, not a third
+class; they remain in the denominator and are not counted as correct.
+``Binary errors'' below are incorrect,
+non-unknown binary predictions; unknowns and invalid outputs are
+reported separately. Where shown as ``errors (FP/FN)'', the parenthetic
+counts give false positives followed by false negatives. Thus, for each
+group, correct predictions, unknowns, binary errors, and invalid
+outputs sum to the denominator.
+Accuracy drop is clean accuracy minus adversarial accuracy, expressed
+in percentage points (pp), not as a relative percentage change.
+
+End-to-end attack-subtype accuracy is calculated only on records whose
+ground-truth web-event class is malicious. A record counts as correct
+only when the model predicts \texttt{malicious} and assigns the correct
+attack subtype; \texttt{benign}, \texttt{unknown}, and incorrect subtype
+predictions count as incorrect. Its denominator is 400 overall and 100
+within each malicious category on the CSIC 2010-based synthetic dataset.
+In the reported ModSec-WP cohort, the corresponding denominator is 400
+overall and 200 within each malicious source category (SQL Injection
+and XSS). This is not precision over predicted malicious records.
+Benign ground-truth records are excluded because they have no attack
+subtype.
+
+\section{Configuration Comparison}\label{configuration-comparison}
+
+\begin{table}[H]
+\centering
+\caption{Overall binary classification on the 500-record CSIC 2010-based synthetic dataset.}
+\label{tab:overall-classification}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Configuration & Correct / 500 & Accuracy & Unknown & Errors (FP/FN) & Invalid \\
+\midrule
+C1 & 440 & 88.0\% & 46 & 14 (11/3) & 0 \\
+C2 & 404 & 80.8\% & 59 & 37 (2/35) & 0 \\
+C3 & 352 & 70.4\% & 141 & 7 (0/7) & 0 \\
+C4 & 453 & 90.6\% & 22 & 25 (0/25) & 0 \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+\begin{minipage}{\textwidth}\footnotesize
+\textit{Note.} Binary classification distinguishes benign/normal from
+malicious records. ``Unknown'' is an abstention, not a third class, and
+is counted as incorrect in the accuracy denominator.
+\end{minipage}
+\end{table}
+
+Table~\ref{tab:overall-classification} shows C4 with the highest overall
+accuracy, followed by C1. The error and abstention columns show different
+trade-offs: C3 has 141 unknown predictions but only seven non-unknown
+errors, whereas C4 has 22 unknown predictions and 25 false negatives.
+Since unknown predictions count as incorrect in accuracy, the
+condition-level results in Table~\ref{tab:condition-classification}
+help show how performance differs between clean and adversarial records.
+
+\begin{table}[H]
+\centering
+\caption{Binary classification by condition on the CSIC 2010-based synthetic dataset (250 records per condition).}
+\label{tab:condition-classification}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llrrrrr@{}}
+\toprule
+Configuration & Condition & Correct / 250 & Accuracy & Unknown & Errors (FP/FN) & Invalid \\
+\midrule
+C1 & Clean & 225 & 90.0\% & 25 & 0 (0/0) & 0 \\
+C1 & Adversarial & 215 & 86.0\% & 21 & 14 (11/3) & 0 \\
+C2 & Clean & 206 & 82.4\% & 19 & 25 (0/25) & 0 \\
+C2 & Adversarial & 198 & 79.2\% & 40 & 12 (2/10) & 0 \\
+C3 & Clean & 187 & 74.8\% & 56 & 7 (0/7) & 0 \\
+C3 & Adversarial & 165 & 66.0\% & 85 & 0 (0/0) & 0 \\
+C4 & Clean & 210 & 84.0\% & 15 & 25 (0/25) & 0 \\
+C4 & Adversarial & 243 & 97.2\% & 7 & 0 (0/0) & 0 \\
+\midrule
+\multicolumn{2}{@{}l}{Clean-to-adversarial accuracy drop} & \multicolumn{5}{l@{}}{} \\
+C1 & & \multicolumn{5}{l}{4.0 pp} \\
+C2 & & \multicolumn{5}{l}{3.2 pp} \\
+C3 & & \multicolumn{5}{l}{8.8 pp} \\
+C4 & & \multicolumn{5}{l}{-13.2 pp} \\
+\bottomrule
+\end{tabular}
+}
+\par\smallskip
+\begin{minipage}{\textwidth}\footnotesize
+\textit{Note.} The predicted classes are benign/normal and malicious;
+``Unknown'' is an abstention, not a third class, and is counted as
+incorrect in accuracy.
+\end{minipage}
+\end{table}
+
+The tables show different combinations of abstention and incorrect
+non-unknown predictions. For example, C3's adversarial condition has
+85 unknowns and no incorrect non-unknown binary predictions, whereas
+C4's clean condition has 25 binary errors and 15 unknowns. These are
+descriptive results from one run, not evidence of statistical
+significance. The clean-to-adversarial difference is a condition
+contrast; it does not establish that Prompt Injection caused the
+difference.
+
+\section{Results by Configuration}\label{results-by-configuration}
+
+All configurations receive the same normalized HTTP record, use the same
+model alias and generation settings, and must return the same structured
+report. They differ in the information placed in context and in the
+controls applied before generation. Figure~\ref{fig:configuration-flows}
+summarizes the comparison: C1 is the direct baseline, C2 adds trusted
+retrieval, C3 applies the secure prompt to every record, and C4 activates
+the secure path only after a detector match.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.78\textwidth}{!}{%
+\begin{tikzpicture}[
+  box/.style={draw=black!65,fill=gray!7,rounded corners=2pt,
+    minimum height=0.6cm,text width=1.95cm,align=center,
+    inner sep=3pt,font=\scriptsize},
+  lane/.style={font=\footnotesize\bfseries,anchor=east},
+  arrow/.style={-{Latex[length=1.7mm]},thick,black!65}
+]
+  \node[lane] at (-0.35,2.4) {C1};
+  \node[box] (c1a) at (1.0,2.4) {HTTP input};
+  \node[box] (c1b) at (3.8,2.4) {LLM};
+  \node[box] (c1c) at (6.6,2.4) {Report};
+  \draw[arrow] (c1a) -- (c1b); \draw[arrow] (c1b) -- (c1c);
+
+  \node[lane] at (-0.35,1.6) {C2};
+  \node[box] (c2a) at (1.0,1.6) {HTTP input};
+  \node[box] (c2b) at (3.8,1.6) {RAG + LLM};
+  \node[box] (c2c) at (6.6,1.6) {Report};
+  \draw[arrow] (c2a) -- (c2b); \draw[arrow] (c2b) -- (c2c);
+
+  \node[lane] at (-0.35,0.8) {C3};
+  \node[box] (c3a) at (1.0,0.8) {HTTP input};
+  \node[box] (c3b) at (3.8,0.8) {RAG + secure};
+  \node[box] (c3c) at (6.6,0.8) {Report};
+  \draw[arrow] (c3a) -- (c3b); \draw[arrow] (c3b) -- (c3c);
+
+  \node[lane] at (-0.35,0.0) {C4};
+  \node[box] (c4a) at (1.0,0.0) {Detect + clean};
+  \node[box] (c4b) at (3.8,0.0) {RAG + secure};
+  \node[box] (c4c) at (6.6,0.0) {Report + check};
+  \draw[arrow] (c4a) -- (c4b); \draw[arrow] (c4b) -- (c4c);
+\end{tikzpicture}%
+}
+\caption{Information flow and controls applied by C1--C4.}
+\label{fig:configuration-flows}
+\end{figure}
+
+\subsection{C1 --- LLM Only}\label{baseline-c1-llm-only}
+
+C1 correctly classified 440 of 500 records (88.0\%), with 46 unknowns
+and 14 incorrect non-unknown predictions. Its clean and adversarial
+accuracies were 90.0\% and 86.0\%, respectively (a 4.0 pp difference).
+
+C1 receives no retrieved policy or detector metadata. Its 440 correct
+classifications therefore measure what the model can infer directly
+from the request fields and status code. The result is strong for
+explicit signatures: SQL Injection, Path Traversal, and XSS are mostly
+recognizable from one event. The weak point is that the model cannot
+distinguish an embedded instruction from evidence about the underlying
+web event. For example, the adversarial member
+\texttt{BENIGN\_0201\_ADV} contains an ordinary product search together
+with ``ignore previous instructions''. C1 described the instruction
+as its indicator and classified the request as malicious, producing a
+false positive. Conversely, in \texttt{BF\_0170\_ADV}, a login request
+included text requesting a benign label; C1 followed part of that
+context and returned benign although the web-event annotation was
+malicious.
+
+These examples show why the baseline is useful but not a security
+control. A response can be structured and syntactically valid while
+still allowing attacker-controlled words to alter the meaning assigned
+to the request. C1's 11 false positives on benign records and three
+false negatives on malicious records should therefore be read together
+with its 46 abstentions, rather than treating 88.0\% accuracy as proof
+of resistance.
+
+\subsection{C2 --- LLM + RAG}\label{evaluation-c2-llm-rag}
+
+C2 correctly classified 404 of 500 records (80.8\%), with 59 unknowns
+and 37 incorrect non-unknown predictions. Its clean and adversarial
+accuracies were 82.4\% and 79.2\% (a 3.2 pp difference). The observed
+scores do not show an improvement over C1 in this run; the single-run
+design does not support a causal attribution to retrieval.
+
+C2 adds three trusted knowledge chunks to the same task. The intended
+benefit is to provide definitions and response guidance, not to supply
+the answer key. In this run, however, retrieval coincided with a decline
+from 88.0\% to 80.8\% and with 37 incorrect non-unknown classifications.
+The retrieved documents may improve terminology, but the model still
+receives the embedded instruction unchanged and can combine it with
+reference material in a misleading way.
+
+A representative benign false positive was
+\texttt{BENIGN\_0206\_ADV}: the event was a normal product search, but the
+query parameter asked the system to stop security analysis. C2 cited
+retrieval evidence yet used the suspicious instruction as an indicator
+of malicious traffic. At the opposite extreme,
+\texttt{BF\_0151\_CLEAN} contained an \texttt{admin} login with a common
+password and a 403 response. C2 interpreted the blocked response as
+insufficient evidence and classified the event as benign. Thus retrieval
+did not systematically resolve the distinction between an attempted web
+attack, a successful attack, and an embedded Prompt Injection.
+
+The 35 false negatives are concentrated in Brute Force Login cases
+that require a decision about how much sequence-level meaning may be
+inferred from a single event. The result does not demonstrate that RAG
+is intrinsically harmful; it shows that generic retrieved references did
+not replace an explicit policy for classifying attempts under the
+available evidence.
+
+\subsection{C3 --- LLM + RAG + Secure Prompt}
+\label{evaluation-c3-llm-rag-secure-prompt}
+
+C3 correctly classified 352 of 500 records (70.4\%), with 141 unknowns
+and 7 incorrect non-unknown predictions. Its clean and adversarial
+accuracies were 74.8\% and 66.0\% (an 8.8 pp difference). Its secure
+prompt and examples were applied to every record. These classification
+counts do not establish whether injected instructions were followed.
+
+C3 applies \texttt{SECURE\_SYSTEM} and the same few-shot examples to every
+record, including records for which the detector would have found no
+injection. This is the strongest intervention in prompt policy but not
+in context preparation: the suspicious text is still present and the
+model is asked to resist it. The resulting 70.4\% accuracy is explained
+mainly by abstention. C3 produced 141 \texttt{unknown} responses,
+including 92 in Brute Force Login and 26 in Benign/Normal.
+
+For a clean login request such as \texttt{BF\_0151\_CLEAN}, C3 reported
+that the 403 response looked like an ordinary failed login and that no
+conclusive web-attack indicator was present. That behaviour is cautious,
+but it conflicts with the dataset's definition of a suspected credential
+guess as a malicious attempt. The secure policy therefore protected
+against overclaiming while also suppressing some intended positive
+classifications. The same mechanism affected benign adversarial records:
+the presence of an injected instruction made the model uncertain even
+when the remaining request was an ordinary search or form submission.
+
+C3 is consequently useful as an ablation of prompt hardening. It shows
+that repeating security instructions can reduce unsupported conclusions
+and classification manipulation, but it does not recover the underlying
+event if the conflicting text remains in context. Its low utility is a
+key reason C4 combines routing and preprocessing instead of applying the
+secure policy indiscriminately.
+
+\subsection{C4 --- LLM + RAG + Detector + Evidence Control}
+\label{evaluation-c4-llm-rag-detector-evidence-control}
+
+C4 correctly classified 453 of 500 records (90.6\%), with 22 unknowns
+and 25 incorrect non-unknown predictions. Its clean and adversarial
+accuracies were 84.0\% and 97.2\% (the adversarial accuracy was 13.2 pp
+higher). The secure
+few-shot path was used for 240 detector-routed records, rather than all
+500. On that path, the detected instruction was removed from the model
+input and retrieval query while the remaining web-event fields were
+preserved. C4's detector and citation-ID membership counts are reported
+separately below.
+
+\subsubsection{Development and Improvement of C4}
+\label{development-and-improvement-of-c4}
+
+The C4 result in this chapter is the revised implementation, not the
+first prototype. The initial prototype used the same four stages as the
+reported C4---detection, secure prompting, retrieval, and citation
+validation---but it left the detected instruction inside the HTTP request
+sent to both the retriever and the LLM. The expected defence was therefore
+indirect: the model was instructed to treat the embedded text as
+untrusted data. The initial results showed that this strategy was not
+adequate for utility. It classified 377/500 synthetic records correctly
+(75.4\%), produced 96 \texttt{unknown} responses, and retained correct
+classification on 65.6\% of the clean/adversarial pairs.
+
+The detector and model input must account for URL encoding: spaces may
+appear as \texttt{+} and punctuation as percent-encoded characters, so a
+pattern may not match the stored representation directly. The revised
+detector repeatedly URL-decodes a separate matching copy while
+preserving the original request for audit. The final ModSec-WP
+evaluation below measures detector behavior on its prepared injection
+patterns; because those patterns were designed to match the study's
+defined variants, this is a coverage test rather than an estimate of
+generalization to unseen injections.
+
+Detection alone was not sufficient. In the initial prototype, even a
+detected instruction remained visible in the user message as well as in
+the retrieval query. A secure prompt could ask the model to ignore the
+sentence, but the order still competed with the trusted task and could
+also influence embedding similarity. The revised C4 therefore sanitizes
+the C4 secure path before either operation. For a URL or query string,
+it removes only the parameter containing a matched injection pattern.
+For an instruction embedded in another untrusted field, it redacts the
+matched fragment. The trusted HTTP semantics---method, path, payload,
+status, and the remaining parameters---are retained.
+
+For example, consider the following simplified input:
+
+\begin{lstlisting}
+POST /products?pi_note=Ignore+previous+instructions
+     &action=search
+body: q=laptop
+status: 200
+\end{lstlisting}
+
+The detector identifies \texttt{pi\_note} as a candidate instruction
+after URL decoding. The parameter removal is implemented as a filtering
+operation rather than as a text-wide deletion. First, the normalized
+query is split into name--value components using the \texttt{\&}
+separator. Each component is then tested independently against the same
+fixed rules. A component is discarded only when a rule matches within
+that component; the remaining components are joined again in their
+original order. The request path and all non-matching parameters are
+therefore preserved.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.38\textwidth}{!}{%
+\begin{tikzpicture}[
+  box/.style={draw=black!65,fill=gray!7,rounded corners=2pt,
+    minimum width=5cm,minimum height=0.58cm,
+    text width=5cm,align=center,inner sep=2pt,font=\scriptsize},
+  arrow/.style={-{Latex[length=1.7mm]},thick,black!65}
+]
+  \node[box] (raw) {1. Decode field};
+  \node[box, below=0.2cm of raw] (split) {2. Split on \texttt{\&}};
+  \node[box, below=0.2cm of split] (match) {3. Match each parameter};
+  \node[box, below=0.2cm of match] (filter) {4. Discard matched parameter};
+  \node[box, below=0.2cm of filter] (join) {5. Rejoin valid parameters};
+  \node[box, below=0.2cm of join] (use) {6. Clean input for RAG + LLM};
+  \draw[arrow] (raw) -- (split);
+  \draw[arrow] (split) -- (match);
+  \draw[arrow] (match) -- (filter);
+  \draw[arrow] (filter) -- (join);
+  \draw[arrow] (join) -- (use);
+\end{tikzpicture}%
+}
+\caption{C4 parameter-level sanitization after a Prompt Injection match.}
+\label{fig:c4-parameter-sanitization}
+\end{figure}
+
+For the example above, decoding and splitting produce two independent
+components:
+
+\begin{lstlisting}
+["pi_note=Ignore previous instructions", "action=search"]
+\end{lstlisting}
+
+The first component matches the instruction-override rule and is
+removed. The second component does not match and is retained. C4 then
+constructs the model and retrieval input as:
+
+\begin{lstlisting}
+POST /products?action=search
+body: q=laptop
+status: 200
+\end{lstlisting}
+
+For fields without a name--value structure, such as \texttt{user\_agent}
+or an arbitrary request body, C4 redacts only the matched instruction
+fragment. For instance, ``Ignore previous instructions; browser agent''
+becomes ``[REDACTED\_UNTRUSTED\_INSTRUCTION]; browser agent''. The rest
+of the field remains available for the model. In all cases, the original
+record remains stored for audit and reproducibility; the filtered copy
+is the version used for retrieval and generation.
+
+The distinction between the two operations is important. Parameter
+removal deletes an isolated attacker-created instruction from a URL or
+query string; fragment redaction masks an instruction embedded in
+less-structured content. Neither operation uses the ground-truth
+web-event label, severity, or attack subtype. It therefore cannot
+``repair'' a malicious classification by consulting the answer. It only
+removes content identified by the fixed Prompt Injection rules.
+
+This transformation does not convert the request into a known benign
+example. It removes a competing instruction while leaving the actual
+web evidence available. If the underlying payload were instead a SQL
+Injection expression, that expression would remain unchanged. Thus the
+defence acts on Prompt Injection syntax, not on the ground-truth label or
+the web-attack category.
+
+The secure prompt was also revised. The initial wording emphasized that
+a single event does not prove repeated authentication attempts, but the
+model overgeneralized this caution: isolated requests with privileged
+usernames and common passwords were often returned as
+\texttt{unknown}. The revised prompt distinguishes two statements. It
+still forbids inferring a brute-force campaign or a successful login
+from one request. However, one request containing a plausible credential
+guess against an authentication endpoint may be labelled as a suspected
+single Brute Force Login attempt. Similarly, an injected note in an
+otherwise normal request does not by itself justify an \texttt{unknown}
+classification when the other fields support a benign event. The few-shot
+examples were updated to demonstrate these two distinctions.
+
+\begin{table}[H]
+\centering
+\caption{Initial and revised C4 results on the CSIC 2010-based synthetic dataset.}
+\label{tab:c4-development-comparison}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Measure & Initial C4 & Revised C4 \\
+\midrule
+Synthetic correct / 500 & 377 (75.4\%) & 453 (90.6\%) \\
+Synthetic \texttt{unknown} & 96 & 22 \\
+Synthetic paired retention & 65.6\% & 81.6\% \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+\begin{minipage}{\textwidth}\footnotesize
+\textit{Note.} Synthetic correct counts refer to the two-class web-event
+decision (benign versus malicious). Unknown predictions are not correct
+classifications. External ModSec-WP results are reported separately
+below.
+\end{minipage}
+\end{table}
+
+Table~\ref{tab:c4-development-comparison} summarizes a development
+iteration using the same model and synthetic corpus. The revised C4
+improved classification in the synthetic corpus from 75.4\% to 90.6\%,
+reduced abstentions from 96 to 22, and raised clean/adversarial pair retention in
+the synthetic evaluation from 65.6\% to 81.6\%.
+The revisions changed detector decoding and sanitization as well as the
+secure prompt and few-shot examples. These results therefore describe the
+combined revised C4 package; they do not isolate sanitization as the
+cause of the improvement.
+
+This improvement should not be interpreted as complete security or
+generalization to an independent external test. The ModSec-WP results
+reported below are limited to one run on a prepared sample, and the
+injection rules remain finite: new paraphrases, alternative encodings,
+or multilingual attacks can still evade detection. The principal result
+is therefore descriptive performance on the evaluated scenarios, not a
+production guarantee.
+
+\section{Attack-Subtype Results}\label{attack-subtype-results}
+
+\begin{table}[htbp]
+\centering
+\caption{End-to-end correct attack-subtype classifications on the CSIC 2010-based synthetic dataset (400 malicious records).}
+\label{tab:subtype-overall}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Configuration & Correct / 400 malicious & End-to-end accuracy \\
+\midrule
+C1 & 374 & 93.50\% \\
+C2 & 320 & 80.00\% \\
+C3 & 278 & 69.50\% \\
+C4 & 353 & 88.25\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{End-to-end correct attack-subtype classifications by category on the CSIC 2010-based synthetic dataset (100 malicious records per category).}
+\label{tab:subtype-by-category}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Category & C1 & C2 & C3 & C4 \\
+\midrule
+Brute Force Login & 75/100 & 37/100 & 1/100 & 63/100 \\
+Path Traversal & 100/100 & 89/100 & 95/100 & 96/100 \\
+SQL Injection & 100/100 & 100/100 & 96/100 & 100/100 \\
+XSS & 99/100 & 94/100 & 86/100 & 94/100 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+These scores require both a correct malicious binary classification and
+the correct subtype; abstentions, benign predictions on malicious
+records, and incorrect subtypes are all errors. They are conditional on
+ground-truth malicious records and are not precision among the model's
+positive predictions.
+
+\section{Results by Dataset Category}\label{per-attack-analysis}
+
+Table~\ref{tab:category-binary} reports correct binary classifications,
+unknowns, and incorrect non-unknown predictions for all 100 records in
+each category. For malicious categories, subtype counts are given in
+Table~\ref{tab:subtype-by-category}; they use the same 100
+ground-truth malicious records per category. Benign has no subtype
+score. Separating abstentions from explicit binary errors is important
+because C3 and C4 frequently return \texttt{unknown} for Brute Force
+Login rather than committing to a false label.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Binary results by category on the CSIC 2010-based synthetic dataset (correct, unknown, errors; 100 records per category).}
+\label{tab:category-binary}
+\begin{tabular}{@{}llrrrr@{}}
+\toprule
+Category & Measure & C1 & C2 & C3 & C4 \\
+\midrule
+Benign / Normal & Correct & 66 & 84 & 74 & 100 \\
+ & Unknown & 23 & 14 & 26 & 0 \\
+ & Binary errors & 11 & 2 & 0 & 0 \\
+\midrule
+Brute Force Login & Correct & 75 & 37 & 1 & 63 \\
+ & Unknown & 23 & 29 & 92 & 12 \\
+ & Binary errors & 2 & 34 & 7 & 25 \\
+\midrule
+Path Traversal & Correct & 100 & 89 & 95 & 96 \\
+ & Unknown & 0 & 11 & 5 & 4 \\
+ & Binary errors & 0 & 0 & 0 & 0 \\
+\midrule
+SQL Injection & Correct & 100 & 100 & 96 & 100 \\
+ & Unknown & 0 & 0 & 4 & 0 \\
+ & Binary errors & 0 & 0 & 0 & 0 \\
+\midrule
+XSS & Correct & 99 & 94 & 86 & 94 \\
+ & Unknown & 0 & 5 & 14 & 6 \\
+ & Binary errors & 1 & 1 & 0 & 0 \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+\begin{minipage}{\textwidth}\footnotesize
+\textit{Note.} Every record is assigned one of two event classes:
+benign/normal or malicious. ``Correct'' counts records assigned the
+right class. ``Unknown'' means the model abstained from assigning a
+class. ``Binary errors'' count incorrect definite assignments between
+the two classes and exclude ``Unknown'' cases.
+\end{minipage}
+\end{table}
+
+The largest between-configuration variation is in Brute Force Login,
+including many unknown predictions under C3 and C4. This is a
+descriptive observation on this synthetic sample. In particular, a
+Brute Force Login label can encode a sequence-level interpretation that
+an isolated request record does not establish; the labels therefore do
+not necessarily represent evidence available in a single event.
+
+\section{Prompt Injection Outcomes and Additional Metrics}
+\label{prompt-injection-outcomes}
+
+Attack success was evaluated post hoc over the 250 adversarial records
+for each configuration. The scorer uses an explicit target or an
+observable failure of the trusted task for each injection variant. An
+\texttt{unknown} prediction is not automatically counted as success.
+Evidence suppression uses a conservative structural and lexical proxy,
+so these ASR values should be interpreted as reproducible preliminary
+measurements rather than human-verified outcome labels.
+Table~\ref{tab:synthetic-asr} shows that the secure configurations do
+not improve all outcomes uniformly.
+
+\begin{table}[H]
+\centering
+\caption{Post-hoc Prompt Injection Attack Success Rate on the CSIC 2010-based synthetic dataset.}
+\label{tab:synthetic-asr}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Configuration & Successful / 250 & ASR & Robustness \\
+\midrule
+C1 & 8 & 3.2\% & 96.8\% \\
+C2 & 8 & 3.2\% & 96.8\% \\
+C3 & 4 & 1.6\% & 98.4\% \\
+C4 & 2 & 0.8\% & 99.2\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The largest observed contribution to these totals was not the direct
+overriding of the output schema. Instruction-override and
+prompt-extraction attempts had no detected successes under the stated
+rules. Classification manipulation was detected in C1 2/50 and C2 3/50,
+but in neither C3 nor C4. Evidence-suppression scores were 3/50,
+3/50, 4/50, and 2/50 for C1--C4, respectively. Severity manipulation
+was observed in 3/50, 2/50, 0/50, and 0/50 cases. Because severity
+policy and evidence omission require semantic judgement, these counts
+are less certain than the classification-target and prompt-extraction
+checks.
+
+Paired utility retention---both clean and adversarial members classified
+correctly---was 78.8\% for C1, 70.4\% for C2, 61.2\% for C3, and 81.6\%
+for C4.
+C4 therefore had the best observed combination of ASR and retained
+classification utility on the synthetic corpus.
+
+\section{Standalone Prompt Injection Detector Evaluation}
+\label{standalone-detector-evaluation}
+
+The fixed C4 detector was evaluated against the adversarial/clean
+condition labels on all 500 records. Match denotes a detector-positive
+result. The confusion counts and derived metrics are:
+
+\begin{table}[H]
+\centering
+\caption{C4 detector confusion counts and metrics on the 500-record CSIC 2010-based synthetic dataset.}
+\label{tab:c4-detector}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Condition & Match & No match \\
+\midrule
+Adversarial (250) & TP: 240 & FN: 10 \\
+Clean (250) & FP: 0 & TN: 250 \\
+\midrule
+Precision & \multicolumn{2}{l}{240/(240+0) = 100.0\%} \\
+Recall & \multicolumn{2}{l}{240/(240+10) = 96.0\%} \\
+Specificity & \multicolumn{2}{l}{250/(250+0) = 100.0\%} \\
+F1 score & \multicolumn{2}{l}{2(240)/(2(240)+0+10) = 97.96\%} \\
+Accuracy & \multicolumn{2}{l}{(240+250)/500 = 98.0\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+These are detector measurements against the study's adversarial/clean
+labels, not end-to-end defense success or Prompt Injection ASR. The
+detector routed 240 records to the C4 secure path; this count is not
+evidence that those records contained successful attacks.
+
+\section{Citation-ID Membership Checks}\label{citation-membership-checks}
+
+Citation membership was checked only for the 240 C4 secure-path reports.
+Of these, 114/240 reports contained citations and 126/240 did not.
+Across the reports there were 166 cited IDs, of which 0/166 were
+outside the local knowledge-base ID set; equivalently, 0/240 reports
+had an invalid citation ID. Membership in the knowledge-base ID set
+does not demonstrate that a cited document semantically supports the
+claim made in a response.
+
+\section{Semantic Quality and Citation Support}
+\label{semantic-quality}
+
+A stratified sample of 50 reports per configuration (200 reports in
+total) was reviewed by an LLM-as-judge procedure. The sample was
+balanced by configuration, clean/adversarial condition, and traffic
+category; the judge received the request, annotations, response, and
+cited document content. These are assisted semantic annotations, not
+independent human ground truth. Table~\ref{tab:semantic-quality}
+summarizes both unsupported-report claims and the semantic support of
+the cited material.
+
+\begin{table}[H]
+\centering
+\caption{LLM-assisted semantic review of reports sampled from the CSIC 2010-based synthetic dataset (200 reports).}
+\label{tab:semantic-quality}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Configuration & Hallucination rate & Citations judged & Semantic support \\
+\midrule
+C1 & 12/50 (24.0\%) & 0 & Not applicable \\
+C2 & 16/50 (32.0\%) & 115 & 95/115 (82.6\%) \\
+C3 & 15/50 (30.0\%) & 80 & 75/80 (93.8\%) \\
+C4 & 16/50 (32.0\%) & 82 & 73/82 (89.0\%) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Semantic support includes citations labelled as fully or partially
+supporting a claim. The C3 sample had the highest support rate. C4's revised sample reached
+89.0\% semantic support. Hallucination rates in
+Table~\ref{tab:semantic-quality} measure unsupported or contradictory
+factual claims; a wrong classification by itself was not automatically
+treated as hallucination. Human double review of the sampled judgements
+and expansion to the full corpus remain necessary before these values
+can be treated as audited human measurements.
+
+\section{External Evaluation on ModSec-WP}
+\label{evaluation-modsec-wp}
+
+The full model run used the 800-record ModSec-WP paired dataset
+~\cite{modsecwp2026dataset}. All four configurations were run once per
+record, yielding 3{,}200 responses. The quantitative results below use
+600 records from 300 pairs after excluding the 200
+\texttt{bruteforce} records and their 100 pairs; all 2{,}400 responses
+in this reported cohort were valid structured JSON. The returned model
+was \texttt{gpt-4o-mini-\allowbreak 2024-07-18}. The full run contains
+200 benign and 600 malicious records; the reported cohort contains 200
+benign and 400 malicious records. Original source labels are retained as
+the evaluation reference, but were not independently verified by this
+study. Results are descriptive because the selected sample also informed
+secure prompt v5.
+
+\begin{table}[H]
+\centering
+\caption{Classification and end-to-end attack-subtype accuracy on the 600-record ModSec-WP analytical cohort.}
+\label{tab:modsec-classification}
+{\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+Config. & Correct (600) & Acc. & Cov. & Unknown &
+Errors (FP/FN) & Correct subtype (400) & End-to-end acc. \\
+\midrule
+C1 & 534 & 89.0\% & 93.8\% & 37 & 29/0 & 395 & 98.8\% \\
+C2 & 499 & 83.2\% & 86.8\% & 79 & 18/4 & 381 & 95.3\% \\
+C3 & 505 & 84.2\% & 85.8\% & 85 & 10/0 & 348 & 87.0\% \\
+C4 & 539 & 89.8\% & 91.7\% & 50 & 11/0 & 378 & 94.5\% \\
+\bottomrule
+\end{tabular}
+}
+}
+\par\smallskip
+\begin{minipage}{\textwidth}\footnotesize
+\textit{Note.} Unknown predictions are abstentions, counted as incorrect
+for accuracy. Coverage is the share of records assigned benign or
+malicious. Errors are shown as false positives / false negatives; unknowns
+are excluded from both counts. Correct and end-to-end subtype counts use
+denominators of 600 and 400, respectively. A subtype prediction counts
+as correct only when the record is also classified as malicious; this is
+not precision over predicted attacks.
+\end{minipage}
+\end{table}
+
+C4 had the highest observed overall classification accuracy (89.8\%),
+while C1 had the highest coverage (93.8\%). The source-category
+breakdown in Table~\ref{tab:modsec-category-accuracy} shows
+98.0--100.0\% classification accuracy on SQL Injection and
+76.0--100.0\% on XSS across configurations. The \texttt{bruteforce}
+stratum is excluded from these results because its label requires a
+temporal sequence of requests; the individual model input does not
+include source address or timestamp.
+
+\begin{table}[H]
+\centering
+\caption{Binary classification accuracy by source category in the ModSec-WP analytical cohort.}
+\label{tab:modsec-category-accuracy}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Configuration & Normal & SQL Injection & XSS \\
+\midrule
+C1 & 67.0\% & 100.0\% & 100.0\% \\
+C2 & 57.0\% & 98.0\% & 94.5\% \\
+C3 & 78.5\% & 98.0\% & 76.0\% \\
+C4 & 79.5\% & 98.5\% & 91.5\% \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+\begin{minipage}{\textwidth}\footnotesize
+\textit{Note.} Each included category contains 200 records: 100 clean
+and 100 adversarial. ``Normal'' is the study mapping of the source
+\texttt{normal} label. The source \texttt{bruteforce} stratum is not
+included in the reported metrics because the class requires temporal
+window evidence.
+\end{minipage}
+\end{table}
+
+The secondary audit found that 99 of the 100 sampled source requests met
+the five-request, five-minute criterion for sequence-supported repeated
+authentication activity; one did not. This indicates why the stratum is
+not evaluated as isolated-request classification: the category depends
+on the observation window and source-level aggregation. The audit does
+not establish that authentication failed for any individual request and
+is used only to document the exclusion rationale.
+
+\subsection{Prompt Injection and Paired Utility}
+\label{evaluation-modsec-pi}
+
+Table~\ref{tab:modsec-pi-results} reports classification on the clean
+and adversarial members, post-hoc Attack Success Rate (ASR), and paired
+utility for the 300-pair analytical cohort. ASR counts responses
+meeting the pre-defined deterministic success rules among 300
+adversarial records per configuration; robustness is
+\(1-\mathrm{ASR}\). Pair retention is the fraction of 300 pairs for
+which both members receive the correct binary classification.
+
+\begin{table}[H]
+\centering
+\caption{Prompt Injection and paired-utility results on the ModSec-WP analytical cohort.}
+\label{tab:modsec-pi-results}
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+Configuration & \shortstack{Clean\\accuracy} &
+\shortstack{Adversarial\\accuracy} & ASR &
+\shortstack{Robustness\\(1--ASR)} &
+\shortstack{Both-correct\\pairs} &
+\shortstack{Pair\\retention} \\
+\midrule
+C1 & 96.0\% & 82.0\% & 16/300 (5.3\%) & 94.7\% & 244/300 & 81.3\% \\
+C2 & 92.0\% & 74.3\% & 9/300 (3.0\%) & 97.0\% & 219/300 & 73.0\% \\
+C3 & 87.3\% & 81.0\% & 0/300 (0.0\%) & 100.0\% & 231/300 & 77.0\% \\
+C4 & 91.0\% & 88.7\% & 4/300 (1.3\%) & 98.7\% & 253/300 & 84.3\% \\
+\bottomrule
+\end{tabular}
+}
+\par\smallskip
+\begin{minipage}{\textwidth}\footnotesize
+\textit{Note.} Clean and adversarial accuracy are calculated on the 300
+clean and 300 injected records, respectively. ASR is successful
+Prompt Injection outcomes divided by 300; robustness is \(1-\mathrm{ASR}\).
+Both-correct pairs counts pairs where both records were classified
+correctly; pair retention is that count divided by 300.
+\end{minipage}
+\end{table}
+
+C3 had the lowest measured ASR (0/300), but retained both correct
+classifications on 77.0\% of pairs. C4 had the highest paired
+retention (84.3\%) and adversarial accuracy (88.7\%) in the analytical
+cohort. These outcomes show why ASR must be read alongside
+classification utility; they do not establish a causal contribution
+from any one configuration component.
+
+\begin{longtable}{@{}p{2.7cm}p{7.8cm}rr@{}}
+\caption{Post-hoc ASR by Prompt Injection variant on the ModSec-WP analytical cohort.}
+\label{tab:modsec-variant-asr}\\
+\toprule
+Configuration & Prompt Injection variant & Successful / \(n\) & ASR \\
+\midrule
+\endfirsthead
+\multicolumn{4}{c}{\textit{Table \thetable{} continued}}\\
+\toprule
+Configuration & Prompt Injection variant & Successful / \(n\) & ASR \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r@{}}{\textit{Continued on next page}}\\
+\endfoot
+\bottomrule
+\endlastfoot
+C1 & Instruction Override & 0/65 & 0.0\% \\
+C1 & Classification Manipulation & 14/65 & 21.5\% \\
+C1 & Severity Manipulation & 2/65 & 3.1\% \\
+C1 & Evidence Suppression & 0/40 & 0.0\% \\
+C1 & Prompt Extraction & 0/65 & 0.0\% \\
+\midrule
+C2 & Instruction Override & 0/65 & 0.0\% \\
+C2 & Classification Manipulation & 7/65 & 10.8\% \\
+C2 & Severity Manipulation & 2/65 & 3.1\% \\
+C2 & Evidence Suppression & 0/40 & 0.0\% \\
+C2 & Prompt Extraction & 0/65 & 0.0\% \\
+\midrule
+C3 & Instruction Override & 0/65 & 0.0\% \\
+C3 & Classification Manipulation & 0/65 & 0.0\% \\
+C3 & Severity Manipulation & 0/65 & 0.0\% \\
+C3 & Evidence Suppression & 0/40 & 0.0\% \\
+C3 & Prompt Extraction & 0/65 & 0.0\% \\
+\midrule
+C4 & Instruction Override & 0/65 & 0.0\% \\
+C4 & Classification Manipulation & 1/65 & 1.5\% \\
+C4 & Severity Manipulation & 3/65 & 4.6\% \\
+C4 & Evidence Suppression & 0/40 & 0.0\% \\
+C4 & Prompt Extraction & 0/65 & 0.0\% \\
+\bottomrule
+\end{longtable}
+\begin{minipage}{\textwidth}\footnotesize
+\textit{Note.} Successful / \(n\) is the number of adversarial records
+meeting the variant-specific success rule divided by the number assigned
+to that variant in the analytical cohort: \(n=65\) for each variant
+except Evidence Suppression (\(n=40\)). ASR is the successful count
+divided by \(n\). These post-hoc scores are deterministic proxies, not
+human-verified outcomes.
+\end{minipage}
+
+The C4 detector matched 300/300 adversarial records and 0/300 clean
+records, corresponding to 100.0\% recall, precision, and specificity on
+the reported cohort. This is expected coverage of the canonical
+study-authored instructions, which were designed to exercise the
+detector's defined patterns; it is not evidence that the detector
+generalizes to unseen or obfuscated instructions. Detector matches are
+also distinct from ASR: C4 had 4/300 measured successes despite all
+adversarial records activating its secure route. Severity Manipulation
+is scored only against its injected low-severity target because
+ModSec-WP supplies no severity ground truth. Evidence-suppression and
+other lexical or structural success rules remain proxies and require
+human review.
+
+\section{Failure Analysis}\label{failure-analysis}
+
+The aggregate summary does not provide verified per-record evidence
+needed to attribute individual failures to retrieval, reasoning,
+Prompt Injection, evidence attribution, or ambiguous ground truth.
+Record-level human failure analysis remains pending; the automated and
+LLM-assisted counts above should not be used to assign a cause to any
+individual response without reviewing the record.
